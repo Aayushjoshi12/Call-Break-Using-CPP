@@ -9,6 +9,11 @@ Home_UI Home;
 
 int main()
 {
+    Rectangle img_bot_position1 = {150, 300, (float)200, (float)225};
+    Rectangle img_bot_position2 = {870, 300, (float)200, (float)225};
+    Rectangle img_bot_border1 = {150, 300, (float)200, (float)225};
+    Rectangle img_bot_border2 = {870, 300, (float)200, (float)225};
+    
     InitWindow(screenwidth, screenheight, "Call Break");
     Home.load();
     SetTargetFPS(100);
@@ -21,6 +26,11 @@ int main()
 
         ClearBackground(RED);
         Home.Background(); // Image call
+        Home.text_CallBreak();
+        Home.border_draw(img_bot_border1);
+        Home.border_draw(img_bot_border2);
+        Home.img_machines(img_bot_position1);
+        Home.img_machines(img_bot_position2);
 
         // Home.button_draw(100.0, 200.0);
         //  Home.button_draw(850.0, 200.0);
@@ -33,7 +43,6 @@ int main()
         // {
         //     DrawRectangleRec(button1, GOLD);
         // }
-        Home.text_CallBreak();
 
         EndDrawing();
     }
