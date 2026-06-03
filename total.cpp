@@ -2,7 +2,7 @@
 
 int main()
 {
-    InitWindow(1366, 768, "Final Result");
+    InitWindow(1200, 800, "Final Result");
     SetTargetFPS(60);
      Font myFont = LoadFont("Cinzel-Bold.ttf");
     int scores[5][4] = {0};
