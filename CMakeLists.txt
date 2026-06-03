@@ -12,7 +12,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(raylib)
 
-add_executable(MyGame src/main.cpp)
+add_executable(MyGame src/main.cpp src/Renderer.cpp) # add the executable target
 target_link_libraries(MyGame raylib)
 
 if(WIN32)
