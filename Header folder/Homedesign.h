@@ -5,7 +5,7 @@ using namespace std;
 class Home_UI{
 public:
     void Background();
-    float x=400,y=700;
+
     
     //Loading variable
 
