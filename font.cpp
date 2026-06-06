@@ -9,6 +9,7 @@ fonta::~fonta()
 {
     UnloadFont(font);
 }
-void fonta::drawf(const char *text, Vector2 position, float fontSize, float spacing, Color tint){
+void fonta::drawf(const char *text, Vector2 position, float fontSize, float spacing, Color tint)
+{
     DrawTextEx(font, text, position, fontSize, spacing, tint);
 }
