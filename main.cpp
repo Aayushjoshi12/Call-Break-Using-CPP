@@ -1,25 +1,25 @@
-#include<raylib.h>
-#include<iostream>
+#include <raylib.h>
+#include <iostream>
 
 using namespace std;
-float screenwidth = 900,screenheight = 900;
+float screenwidth = 900, screenheight = 900;
 
-
-int main(){
-    InitWindow(screenwidth,screenheight,"Cpp");
+int main()
+{
+    InitWindow(screenwidth, screenheight, "Cpp");
     Texture2D img = LoadTexture("Image files/BackGround.png");
     SetTargetFPS(100);
-    while(WindowShouldClose() == false){
+    while (WindowShouldClose() == false)
+    {
         BeginDrawing();
         ClearBackground(BLACK);
-            DrawTexturePro(
+        DrawTexturePro(
             img,
-            (Rectangle){ 0, 0, (float)img.width, (float)img.height },
-            (Rectangle){ 0, 0, (float)screenwidth, (float)screenheight },
-            (Vector2){ 0,0},
+            (Rectangle){0, 0, (float)img.width, (float)img.height},
+            (Rectangle){0, 0, (float)screenwidth, (float)screenheight},
+            (Vector2){0, 0},
             0.0f,
-            WHITE
-        );
+            WHITE);
         EndDrawing();
     }
     UnloadTexture(img);
