@@ -13,7 +13,7 @@ int main()
     Rectangle img_bot_position2 = {870, 310, (float)220, (float)225};
     Rectangle img_bot_border1 = {150, 310, (float)220, (float)245};
     Rectangle img_bot_border2 = {870, 300, (float)220, (float)245};
-    Rectangle Mute_Button = {(float)(1100.0),(float)70.0,(float)45.0,(float)45.0};
+    Rectangle Mute_Button = {(float)(1100.0), (float)70.0, (float)45.0, (float)45.0};
 
     InitWindow(screenwidth, screenheight, "Call Break");
     Home.load();
@@ -26,7 +26,7 @@ int main()
         BeginDrawing();
 
         ClearBackground(RED);
-        //Home design
+        // Home design
         Home.Background(); // Image call
         Home.text_CallBreak();
         Home.border_draw(img_bot_border1);

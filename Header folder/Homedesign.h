@@ -1,13 +1,13 @@
 #pragma once
-#include"raylib.h"
-#include<string>
+#include "raylib.h"
+#include <string>
 using namespace std;
-class Home_UI{
+class Home_UI
+{
 public:
     void Background();
 
-    
-    //Loading variable
+    // Loading variable
 
     Font Cinzel_load;
     Texture2D Background_Img_load;
@@ -15,11 +15,11 @@ public:
     Texture2D img_human_load;
     Texture2D img_mute_button_load;
 
-    //Function loading and unloading declaration
+    // Function loading and unloading declaration
     void load();
     void unload();
 
-    //Function Declaration for Home page
+    // Function Declaration for Home page
     void img_machines(Rectangle Img_bot_machine_position);
     void img_human(Rectangle Img_bot_machine_position);
     void border_draw(Rectangle Border);
