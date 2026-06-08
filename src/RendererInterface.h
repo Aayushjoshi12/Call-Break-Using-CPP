@@ -10,6 +10,9 @@ private:
     Texture2D table;
     Texture2D cards[52];
     Texture2D background;
+    Font font;
+    Font boldFont;
+    Color goldColor;
     Texture2D mute;
 
 public:
@@ -21,4 +24,5 @@ public:
     void drawClock(float currentTime, float totalTime, int x, int y, int radius);
     void drawBackground();
     void drawMute(float x, float y);
+    void drawWholeInterface();
 };

@@ -1,10 +1,13 @@
-#include "Renderer.h"
+#include "RendererInterface.h"
 
 Renderer::Renderer()
 {
     cardBack = LoadTexture("../Assets/Image files/backhand.jpeg");
     table = LoadTexture("../Assets/Image files/table.png");
     background = LoadTexture("../Assets/Image files/BackGround.png");
+    font=LoadFont("../Assets/fonts/Cinzel.ttf");
+    goldColor={255,215,0,1};
+    boldFont=LoadFont("../Assets/fonts/Cinzel-Bold.ttf");
     for (int i = 0; i < 13; i++)
     {
         string path = "../Assets/Image files/cards/" + to_string(i + 2) + "_of_clubs.png";
@@ -66,6 +69,57 @@ void Renderer::drawClock(float currentTime, float totalTime, int x, int y, int r
     // countdown text in center
     string text = to_string((int)currentTime);
     DrawText(text.c_str(), x - 10, y - 10, 20, WHITE);
+}
+void Renderer::drawWholeInterface(){
+         drawBackground();
+
+        for (int i = 0; i < 3; i++)
+        {
+            switch (i)
+            {
+            case 0:
+            {
+                drawCardBack(600.0, 100.0);
+                Vector2 size = MeasureTextEx(font, "Bot 1", 48, 2);
+                float x = 600.0 - size.x / 2;
+                float y = 100.0 + 108.72 - size.y - 10;
+                DrawTextEx(font, "Bot 1", (Vector2){x, y}, 48, 2, WHITE);
+                break;
+            }
+            case 1:
+            {
+                drawCardBack(200.0, 400.0);
+                Vector2 size = MeasureTextEx(font, "Bot 2", 48, 2);
+                float x = 200.0 - size.x / 2;
+                float y = 400.0 + 108.72 - size.y - 10;
+                DrawTextEx(font, "Bot 2", (Vector2){x, y}, 48, 2, WHITE);
+                break;
+            }
+            case 2:
+            {
+                drawCardBack(1000.0, 400.0);
+                Vector2 size = MeasureTextEx(font, "Bot 3", 48, 2);
+                float x = 1000.0 - size.x / 2;
+                float y = 400.0 + 108.72 - size.y - 10;
+                DrawTextEx(font, "Bot 3", (Vector2){x, y}, 48, 2, WHITE);
+                break;
+            }
+            }
+        }
+        drawTable(600, 430);
+        for (int i = 0; i < 13; i++)
+        {
+            float x = 240.0f + (i * 60.0f);
+            float y = 800.0f - 100;
+
+           drawCard(i, x, y);
+        }
+        drawClock(40.0f, 60.0f, 140, 700, 35);
+        drawMute(1100.0f, 40.0f);
+        Vector2 size = MeasureTextEx(font, "Round 1", 48, 2);
+        float x = 150.0 - size.x / 2;
+        float y = 50.0 - size.y / 210;
+        DrawTextEx(boldFont, "Round 1", (Vector2){x, y}, 48, 2, goldColor);
 }
 Renderer::~Renderer()
 {
