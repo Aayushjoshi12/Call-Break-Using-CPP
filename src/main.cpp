@@ -1,27 +1,36 @@
-#include <iostream>
 #include <raylib.h>
-#include "RendererInterface.h"
+#include <iostream>
+#include "Homedesign.h"
+
 using namespace std;
+float screenwidth = 1200, screenheight = 800;
+
+Home_UI load_unload;
+
 
 int main()
 {
-    int sh = 800;
-    int sw = 1200;
-    InitWindow(sw, sh, "Call Break");
-    Renderer renderer;
-    Font font = LoadFontEx("../Assets/fonts/Cinzel.ttf", 96, NULL, 0);
-    Font boldFont = LoadFontEx("../Assets/fonts/Cinzel-Bold.ttf", 96, NULL, 0);
-
-    Color goldColor = (Color){201, 168, 76, 255};
-
-    while (!WindowShouldClose())
+    
+    InitWindow(screenwidth, screenheight, "Call Break");
+    InitAudioDevice();
+    load_unload.load();
+    PlayMusicStream(load_unload.mymusic);
+    SetTargetFPS(100);
+    // Rectangle button1 = {100, 200, 300, 150};
+    // Rectangle button2 = {850, 200, 300, 150};
+    while (WindowShouldClose() == false)
     {
-        BeginDrawing();
-         ClearBackground(RAYWHITE);
-         renderer.drawWholeInterface();
-         EndDrawing();
-    }
 
+        BeginDrawing();
+
+        ClearBackground(RED);
+        // Home design
+        load_unload.run_HomeDesign_function();
+
+
+        EndDrawing();
+    }
+    load_unload.unload();
+    CloseAudioDevice();
     CloseWindow();
-    return 0;
 }
