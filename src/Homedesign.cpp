@@ -19,8 +19,8 @@ void Home_UI::load()
     Background_Img_load = LoadTexture("../Assets/Image files/HomeUI.png");
     img_machine_load = LoadTexture("../Assets/Image files/robot-bot-icon.png");
     img_human_load = LoadTexture("../Assets/Image files/human.png");
-    img_mute_button_load = LoadTexture("../Assets/Image files/muteme.png");
-    img_unmute_button_load = LoadTexture("../Assets/Image files/unmuteme.png");
+    img_mute_button_load = LoadTexture("../Assets/Image files/mute.png");
+    img_unmute_button_load = LoadTexture("../Assets/Image files/unmute.png");
     mymusic = LoadMusicStream("../Assets/Music/mute.mp3");
 }
 void Home_UI::unload()
