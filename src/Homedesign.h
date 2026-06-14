@@ -2,6 +2,16 @@
 #include "raylib.h"
 #include <string>
 using namespace std;
+
+enum gamestates
+{
+    HomeScreen,
+    PlayBot,
+    PlayHuman
+};
+
+extern gamestates currentstate;
+
 class Home_UI
 {
 public:
@@ -32,6 +42,6 @@ public:
     void text_CallBreak();
     void check_collision_mute_unmute();
     void backGround_Music();
-
-    void run_HomeDesign_function();
+    void Homedesign_draw();
+    void isclicked();
 };

@@ -4,11 +4,12 @@
 
 Color border_color_Home = {209, 194, 193, 255};
 Color Text_color_Home = {241, 241, 241, 255};
+gamestates currentstate = HomeScreen;
 
 Rectangle img_bot_position1 = {160, 310, (float)200, (float)225};
 Rectangle img_bot_position2 = {870, 310, (float)220, (float)225};
-Rectangle img_bot_border1 = {150, 310, (float)220, (float)245};
-Rectangle img_bot_border2 = {870, 300, (float)220, (float)245};
+Rectangle img_bot_border = {150, 310, (float)220, (float)245};
+Rectangle img_human_border = {870, 300, (float)220, (float)245};
 Rectangle Mute_Button = {(float)(1100.0), (float)70.0, (float)45.0, (float)45.0};
 Rectangle UnMute_Button = {(float)(1100.0), (float)70.0, (float)45.0, (float)45.0};
 
@@ -112,13 +113,14 @@ void Home_UI::check_collision_mute_unmute()
     {
         ismute = !ismute;
     }
-    if (ismute){
-        SetMusicVolume(mymusic,0.0f);
+    if (ismute)
+    {
+        SetMusicVolume(mymusic, 0.0f);
     }
-    else{
-        SetMusicVolume(mymusic,1.0f);
+    else
+    {
+        SetMusicVolume(mymusic, 1.0f);
     }
-
 }
 
 void Home_UI::Img_Un_Mute_button(Rectangle load)
@@ -144,19 +146,34 @@ void Home_UI::Img_Un_Mute_button(Rectangle load)
             WHITE);
     }
 }
-    void Home_UI::backGround_Music(){
-        UpdateMusicStream(mymusic);
+void Home_UI::backGround_Music()
+{
+    UpdateMusicStream(mymusic);
+}
+
+void Home_UI::isclicked()
+{
+    if (CheckCollisionPointRec(GetMousePosition(), img_bot_border) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+        currentstate = PlayBot;
     }
-void Home_UI::run_HomeDesign_function()
+    else if (CheckCollisionPointRec(GetMousePosition(), img_human_border) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+        currentstate = PlayHuman;
+    }
+}
+
+void Home_UI::Homedesign_draw()
 {
 
     Background(); // Image call
     text_CallBreak();
-    border_draw(img_bot_border1);
-    border_draw(img_bot_border2);
+    border_draw(img_bot_border);
+    border_draw(img_human_border);
     img_machines(img_bot_position1);
     check_collision_mute_unmute();
     Img_Un_Mute_button(Mute_Button);
     img_human(img_bot_position2);
+    isclicked();
     backGround_Music();
 }
