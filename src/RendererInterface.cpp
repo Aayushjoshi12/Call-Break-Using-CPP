@@ -22,6 +22,7 @@ void Renderer::drawCardBack(float x, float y)
 
     DrawTextureEx(cardBack, {x - 35.0f, y - (cardBack.height * scale) / 2}, 0.0f, scale, WHITE);
 }
+
 void Renderer::drawTable(int x, int y)
 {
     float scale = 800.0f / table.width;
@@ -45,6 +46,7 @@ void Renderer::drawMute(float x, float y)
     float scale = 30.0f / mute.width;
     DrawTextureEx(mute, {x - 15.0f, y - 15.0f}, 0.0f, scale, WHITE);
 }
+
 void Renderer::drawClock(float currentTime, float totalTime, int x, int y, int radius)
 {
     float fraction = currentTime / totalTime;
