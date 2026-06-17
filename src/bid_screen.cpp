@@ -1,67 +1,78 @@
-#include <raylib.h>
+#include "bid_screen.h"
 
-int selectedBid = 0;
-
-void DrawBidScreen(Texture2D bg)
+BidScreen::BidScreen()
 {
-    Vector2 mouse = GetMousePosition();
+    selectedBid = 0;
 
-    Rectangle buttons[8] =
-        {
-            {150, 250, 100, 100},
-            {330, 250, 100, 100},
-            {510, 250, 100, 100},
-            {690, 250, 100, 100},
+    bidButtons[0] = {150, 250, 100, 100};
+    bidButtons[1] = {330, 250, 100, 100};
+    bidButtons[2] = {510, 250, 100, 100};
+    bidButtons[3] = {690, 250, 100, 100};
 
-            {150, 450, 100, 100},
-            {330, 450, 100, 100},
-            {510, 450, 100, 100},
-            {690, 450, 100, 100}};
+    bidButtons[4] = {150, 450, 100, 100};
+    bidButtons[5] = {330, 450, 100, 100};
+    bidButtons[6] = {510, 450, 100, 100};
+    bidButtons[7] = {690, 450, 100, 100};
+}
 
-    for (int i = 0; i < 8; i++)
+void BidScreen::Update()
+{
+    Vector2 mousePosition = GetMousePosition();
+
+    for (int buttonIndex = 0; buttonIndex < 8; buttonIndex++)
     {
-        if (CheckCollisionPointRec(mouse, buttons[i]) &&
+        if (CheckCollisionPointRec(mousePosition, bidButtons[buttonIndex]) &&
             IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
         {
-            selectedBid = i + 1;
+            selectedBid = buttonIndex + 1;
         }
     }
+}
 
+void BidScreen::Draw(Texture2D backgroundImage)
+{
     DrawTexturePro(
-        bg,
-        (Rectangle){0, 0, (float)bg.width, (float)bg.height},
+        backgroundImage,
+        (Rectangle){0, 0, (float)backgroundImage.width, (float)backgroundImage.height},
         (Rectangle){0, 0, 900, 900},
         (Vector2){0, 0},
-        0,
+        0.0f,
         WHITE);
 
     DrawText("ENTER YOUR BID", 250, 100, 45, GOLD);
 
-    for (int i = 0; i < 8; i++)
+    for (int buttonIndex = 0; buttonIndex < 8; buttonIndex++)
     {
-        Color btnColor = LIGHTGRAY;
+        Color buttonColor = LIGHTGRAY;
 
-        if (selectedBid == i + 1)
-            btnColor = YELLOW;
+        if (selectedBid == buttonIndex + 1)
+        {
+            buttonColor = YELLOW;
+        }
 
         DrawCircle(
-            buttons[i].x + 50,
-            buttons[i].y + 50,
+            bidButtons[buttonIndex].x + 50,
+            bidButtons[buttonIndex].y + 50,
             50,
-            btnColor);
+            buttonColor);
 
         DrawText(
-            TextFormat("%d", i + 1),
-            buttons[i].x + 35,
-            buttons[i].y + 25,
+            TextFormat("%d", buttonIndex + 1),
+            bidButtons[buttonIndex].x + 35,
+            bidButtons[buttonIndex].y + 25,
             40,
             BLACK);
     }
 
     DrawText(
         TextFormat("Selected Bid : %d", selectedBid),
-        300,
+        280,
         700,
         35,
         GREEN);
+}
+
+int BidScreen::GetSelectedBid()
+{
+    return selectedBid;
 }
