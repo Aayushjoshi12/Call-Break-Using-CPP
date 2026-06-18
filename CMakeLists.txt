@@ -16,6 +16,7 @@ add_executable(MyGame
 src/main.cpp
 src/Frontend/Homedesign.cpp
 src/Frontend/shuffling.cpp
+src/Frontend/HandleMusic.cpp
 )
 target_link_libraries(MyGame raylib)
 
