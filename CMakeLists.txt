@@ -17,6 +17,10 @@ src/main.cpp
 src/Frontend/Homedesign.cpp
 src/Frontend/shuffling.cpp
 src/Frontend/HandleMusic.cpp
+src/Frontend/RendererInterface.cpp
+src/Frontend/bid_screen.cpp
+src/Frontend/CardShuffler.cpp
+src/Backend/entities.cpp
 )
 target_link_libraries(MyGame raylib)
 

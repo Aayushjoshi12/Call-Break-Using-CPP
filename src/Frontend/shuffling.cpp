@@ -1,4 +1,3 @@
-
 #include "shuffling.h"
 #include <algorithm>
 #include <cmath>
@@ -9,25 +8,20 @@
  
 static const Vector2 TABLE = { SW * 0.5f, SH * 0.52f };
  
-// ──────────────────────────────────────────────────────────────
-//  Constructor / Destructor
-// ──────────────────────────────────────────────────────────────
 CardShuffle::CardShuffle()
     : m_phase(Phase::IDLE), m_time(0.f), m_globalTime(0.f),
       m_duration(1.f), m_setupDone(false), m_label(""),
       m_cutAt(0), m_riffleCount(0), m_rifflesTotal(2),
       m_leftBase({0,0}), m_rightBase({0,0}),
       m_overhands(0), m_tex({0}), m_bgTex({0}), m_cardW(0), m_cardH(0),
-      m_placeholder(false), m_dotTimer(0.f), m_dotCount(0)
+      m_placeholder(false), m_dotTimer(0.f), m_dotCount(0),
+      m_done(false)
 {
     srand((unsigned)time(nullptr));
 }
  
 CardShuffle::~CardShuffle() {}
  
-// ──────────────────────────────────────────────────────────────
-//  Math Helpers
-// ──────────────────────────────────────────────────────────────
 float CardShuffle::Lerp(float a, float b, float t) {
     return a + (b - a) * t;
 }
@@ -79,10 +73,7 @@ float CardShuffle::SmoothNoise(float x) {
     return Lerp(h(i), h(i + 1), u);
 }
  
-// ──────────────────────────────────────────────────────────────
-//  Card Helpers
-// ──────────────────────────────────────────────────────────────
-void CardShuffle::SnapSource(Card& c) {
+void CardShuffle::SnapSource(ShuffleCard& c) {
     c.posA   = c.pos;
     c.rotA   = c.rot;
     c.scaleA = c.scale;
@@ -102,7 +93,7 @@ void CardShuffle::StackAllCards(float baseRot) {
     }
 }
  
-void CardShuffle::AnimateCard(Card& c, float phaseT, Phase ph) {
+void CardShuffle::AnimateCard(ShuffleCard& c, float phaseT, Phase ph) {
     if (c.landed) return;
     float lt = (phaseT - c.delay) / fmaxf(c.dur - c.delay, 0.001f);
     lt = Clamp01(lt);
@@ -127,9 +118,6 @@ void CardShuffle::AnimateCard(Card& c, float phaseT, Phase ph) {
     if (lt >= 1.f) c.landed = true;
 }
  
-// ──────────────────────────────────────────────────────────────
-//  Phase Setups
-// ──────────────────────────────────────────────────────────────
 void CardShuffle::SetupIdle() {
     m_label    = "Deck at rest";
     m_duration = 1.4f;
@@ -150,7 +138,7 @@ void CardShuffle::SetupCutLift() {
     float cy = TABLE.y - RandF(4.f, 12.f);
  
     for (int i = 0; i < NUM_CARDS; ++i) {
-        Card& c  = m_cards[i];
+        ShuffleCard& c  = m_cards[i];
         SnapSource(c);
         bool  top = (i >= NUM_CARDS - m_cutAt);
         if (top) {
@@ -174,7 +162,7 @@ void CardShuffle::SetupCutDrop() {
     m_label    = "Placing cut...";
     m_duration = 0.42f;
     for (int i = 0; i < NUM_CARDS; ++i) {
-        Card& c  = m_cards[i];
+        ShuffleCard& c  = m_cards[i];
         SnapSource(c);
         bool  top = (i >= NUM_CARDS - m_cutAt);
         c.posB  = { c.pos.x + RandF(-1.f, 1.f),
@@ -192,7 +180,7 @@ void CardShuffle::SetupCutMerge() {
     float botTop = TABLE.y - (float)(NUM_CARDS - m_cutAt) * 0.28f;
  
     for (int i = 0; i < NUM_CARDS; ++i) {
-        Card& c  = m_cards[i];
+        ShuffleCard& c  = m_cards[i];
         SnapSource(c);
         bool  top = (i >= NUM_CARDS - m_cutAt);
         if (top) {
@@ -221,7 +209,7 @@ void CardShuffle::SetupRiffleSplit() {
     m_rightBase = { TABLE.x + 90.f + RandF(-4.f, 4.f), TABLE.y + 8.f + RandF(-3.f, 3.f) };
  
     for (int i = 0; i < NUM_CARDS; ++i) {
-        Card& c    = m_cards[i];
+        ShuffleCard& c    = m_cards[i];
         SnapSource(c);
         bool  left  = (i < half);
         int   local = left ? i : (i - half);
@@ -270,7 +258,7 @@ void CardShuffle::SetupRiffleDrop() {
  
     int total = (int)m_dropOrder.size();
     for (int slot = 0; slot < total; ++slot) {
-        Card& c = m_cards[m_dropOrder[slot]];
+        ShuffleCard& c = m_cards[m_dropOrder[slot]];
         SnapSource(c);
         float side = (c.half == 0) ? -1.f : 1.f;
         c.posB  = { TABLE.x + RandF(-5.f, 5.f) + side * RandF(0.f, 6.f),
@@ -289,7 +277,7 @@ void CardShuffle::SetupRifflePush() {
     m_label    = "Pushing together...";
     m_duration = 0.52f;
     for (int i = 0; i < NUM_CARDS; ++i) {
-        Card& c = m_cards[i];
+        ShuffleCard& c = m_cards[i];
         SnapSource(c);
         c.arcH  = 0.f;
         c.posB  = { TABLE.x + RandF(-2.f, 2.f),
@@ -337,7 +325,7 @@ void CardShuffle::SetupOverhand() {
     m_duration = t + 0.45f;
  
     for (int i = 0; i < NUM_CARDS; ++i) {
-        Card& c = m_cards[i];
+        ShuffleCard& c = m_cards[i];
         SnapSource(c);
         c.posB  = { topHand.x + RandF(-3.f, 3.f),
                     topHand.y - i * 0.27f };
@@ -351,7 +339,7 @@ void CardShuffle::SetupSquare() {
     m_label    = "Squaring deck...";
     m_duration = 0.75f;
     for (int i = 0; i < NUM_CARDS; ++i) {
-        Card& c = m_cards[i];
+        ShuffleCard& c = m_cards[i];
         SnapSource(c);
         c.arcH  = 0.f;
         c.posB  = { TABLE.x + RandF(-0.6f, 0.6f),
@@ -364,9 +352,6 @@ void CardShuffle::SetupSquare() {
     }
 }
  
-// ──────────────────────────────────────────────────────────────
-//  Phase Updates
-// ──────────────────────────────────────────────────────────────
 void CardShuffle::UpdateOverhand(float elapsed) {
     for (const auto& p : m_packets) {
         float lt = Clamp01((elapsed - p.startT) / p.dur);
@@ -375,7 +360,7 @@ void CardShuffle::UpdateOverhand(float elapsed) {
         float arc = -sinf(lt * PI) * p.arcH;
         float srcR = m_cards[p.start].rotA;
         for (int ci = p.start; ci < p.start + p.count && ci < NUM_CARDS; ++ci) {
-            Card& c = m_cards[ci];
+            ShuffleCard& c = m_cards[ci];
             c.pos   = LerpV(p.srcPos, p.dstPos, e);
             c.pos.y += arc * (1.f - e);
             c.rot   = Lerp(srcR, p.dstRot, e);
@@ -432,7 +417,10 @@ void CardShuffle::AdvancePhase() {
             if (m_overhands < 2) StartPhase(Phase::OVERHAND);
             else                  StartPhase(Phase::SQUARE);
             break;
-        case Phase::SQUARE: StartPhase(Phase::IDLE); break;
+        case Phase::SQUARE:
+            m_done = true;          // ← full shuffle cycle completed
+            StartPhase(Phase::IDLE);
+            break;
     }
 }
  
@@ -452,9 +440,6 @@ void CardShuffle::RunSetup() {
     m_setupDone = true;
 }
  
-// ──────────────────────────────────────────────────────────────
-//  Draw Helpers
-// ──────────────────────────────────────────────────────────────
 void CardShuffle::DrawCards() {
     std::vector<int> idx(NUM_CARDS);
     for (int i = 0; i < NUM_CARDS; ++i) idx[i] = i;
@@ -462,7 +447,7 @@ void CardShuffle::DrawCards() {
     [&](int a, int b){ return m_cards[a].zOrder < m_cards[b].zOrder; });
  
     for (int i : idx) {
-        const Card& c = m_cards[i];
+        const ShuffleCard& c = m_cards[i];
         float w = m_cardW * c.scale;
         float h = m_cardH * c.scale;
         Rectangle src  = { 0, 0, (float)m_tex.width, (float)m_tex.height };
@@ -475,23 +460,19 @@ void CardShuffle::DrawCards() {
 }
  
 void CardShuffle::DrawUI() {
-    // Build "Card is being shuffled" + animated dots (dot state updated in Update())
-    const char* base = "Card is being shuffled";
+    const char* base = "ShuffleCard is being shuffled";
     char dots[5] = { 0 };
     for (int i = 0; i < m_dotCount; ++i) dots[i] = '.';
     char displayText[64];
     snprintf(displayText, sizeof(displayText), "%s%s", base, dots);
  
-    // Measure and center
     float fontSize  = 36.f;
     float spacing   = 2.f;
     Vector2 textSize = MeasureTextEx(m_font, displayText, fontSize, spacing);
     float tx = (SW - textSize.x) * 0.5f;
     float ty = SH - 60.f;
  
-    // Subtle shadow
     DrawTextEx(m_font, displayText, { tx + 2.f, ty + 2.f }, fontSize, spacing, { 0, 0, 0, 140 });
-    // Main text in rich golden color
     DrawTextEx(m_font, displayText, { tx, ty }, fontSize, spacing, { 255, 215, 0, 255 });
 }
  
@@ -510,23 +491,16 @@ void CardShuffle::LoadCardTexture(const char* imagePath) {
     m_cardH = m_tex.height * CARD_SCALE;
 }
  
-// ──────────────────────────────────────────────────────────────
-//  Public Lifecycle
-// ──────────────────────────────────────────────────────────────
 void CardShuffle::Init(const char* imagePath) {
     LoadCardTexture(imagePath);
- 
-    // Load background texture
     m_bgTex = LoadTexture("../Assets/Image files/HomeUI.png");
- 
-    // Load Cinzel Bold font
     m_font = LoadFontEx("../Assets/Fonts/Cinzel-Bold.ttf", 256, 0, 0);
     SetTextureFilter(m_font.texture, TEXTURE_FILTER_BILINEAR);
  
     m_cards.resize(NUM_CARDS);
     StackAllCards();
     for (int i = 0; i < NUM_CARDS; ++i) {
-        Card& c  = m_cards[i];
+        ShuffleCard& c  = m_cards[i];
         c.posA   = c.pos;  c.posB   = c.pos;
         c.rotA   = c.rot;  c.rotB   = c.rot;
         c.scaleA = 1.f;    c.scaleB = 1.f;
@@ -541,6 +515,7 @@ void CardShuffle::Init(const char* imagePath) {
     m_duration  = 1.2f;
     m_setupDone = true;
     m_label     = "Deck at rest";
+    m_done      = false;   // ← initialize here
 }
  
 void CardShuffle::Update() {
@@ -548,7 +523,6 @@ void CardShuffle::Update() {
     m_time       += dt;
     m_globalTime += dt;
  
-    // Animate the dots in the shuffling label
     m_dotTimer += dt;
     if (m_dotTimer >= 0.45f) {
         m_dotTimer = 0.f;
@@ -582,19 +556,14 @@ void CardShuffle::Update() {
 }
  
 void CardShuffle::Draw() {
-    // REMOVED BeginDrawing() and ClearBackground — main handles these
- 
-    // Draw background image stretched to fill the screen
     DrawTexturePro(m_bgTex,
         { 0, 0, (float)m_bgTex.width, (float)m_bgTex.height },
         { 0, 0, (float)SW, (float)SH },
         { 0, 0 }, 0.f, WHITE);
  
-    // Table shadow ellipse
     DrawEllipse((int)TABLE.x, (int)(TABLE.y + m_cardH * 0.48f),
                 (int)(m_cardW * 0.52f), 10, { 0, 0, 0, 55 });
  
-    // Sort and draw cards
     std::vector<int> idx(NUM_CARDS);
     for (int i = 0; i < NUM_CARDS; ++i) idx[i] = i;
     auto& cards = m_cards;
@@ -602,7 +571,7 @@ void CardShuffle::Draw() {
         [&cards](int a, int b){ return cards[a].zOrder < cards[b].zOrder; });
  
     for (int i : idx) {
-        const Card& c = m_cards[i];
+        const ShuffleCard& c = m_cards[i];
         float w = m_cardW * c.scale;
         float h = m_cardH * c.scale;
         Rectangle src  = { 0, 0, (float)m_tex.width, (float)m_tex.height };
@@ -614,8 +583,6 @@ void CardShuffle::Draw() {
     }
  
     DrawUI();
- 
-    // REMOVED EndDrawing() — main handles this
 }
  
 void CardShuffle::Unload() {
@@ -625,16 +592,17 @@ void CardShuffle::Unload() {
 }
  
 void CardShuffle::Run(const char* imagePath) {
-    InitWindow(1280, 800, "Natural Card Shuffle — Raylib C++");
+    InitWindow(1280, 800, "Natural ShuffleCard Shuffle — Raylib C++");
     SetTargetFPS(FPS);
- 
     Init(imagePath);
- 
     while (!WindowShouldClose()) {
         Update();
         Draw();
     }
- 
     Unload();
     CloseWindow();
+}
+
+bool CardShuffle::isDone() const {
+    return m_done;
 }
