@@ -1,14 +1,14 @@
-#include "RendererInterface.h"
+#include "../headerfiles/RendererInterface.h"
 
 Renderer::Renderer()
 {
-    cardBack   = LoadTexture("../Assets/Image files/backhand.jpg");
-    table      = LoadTexture("../Assets/Image files/table.png");
+    cardBack = LoadTexture("../Assets/Image files/backhand.jpg");
+    table = LoadTexture("../Assets/Image files/table.png");
     background = LoadTexture("../Assets/Image files/BackGround.png");
-    font       = LoadFont("../Assets/fonts/Cinzel_Font.ttf");
-    boldFont   = LoadFont("../Assets/fonts/Cinzel-Bold.ttf");
-    goldColor  = {255, 215, 0, 255};
-    mute       = LoadTexture("../Assets/Image files/mute.png");
+    font = LoadFontEx("../Assets/fonts/Cinzel_Font.ttf", 96, 0, 0);
+    boldFont = LoadFontEx("../Assets/fonts/Cinzel-Bold.ttf", 96, 0, 0);
+    goldColor = {255, 215, 0, 255};
+    mute = LoadTexture("../Assets/Image files/mute.png");
 
     for (int i = 0; i < 13; i++)
     {
@@ -52,9 +52,9 @@ void Renderer::drawMute(float x, float y)
 
 void Renderer::drawClock(float currentTime, float totalTime, int x, int y, int radius)
 {
-    float fraction   = currentTime / totalTime;
+    float fraction = currentTime / totalTime;
     float startAngle = -90.0f;
-    float endAngle   = -90.0f + (360.0f * fraction);
+    float endAngle = -90.0f + (360.0f * fraction);
 
     DrawCircle(x, y, radius, DARKGRAY);
     DrawCircleSector(
@@ -67,7 +67,7 @@ void Renderer::drawClock(float currentTime, float totalTime, int x, int y, int r
     DrawText(text.c_str(), x - 10, y - 10, 20, WHITE);
 }
 
-void Renderer::drawWholeInterface(Card* hand, int count)
+void Renderer::drawWholeInterface(Card *hand, int count)
 {
     drawBackground();
 
@@ -91,12 +91,12 @@ void Renderer::drawWholeInterface(Card* hand, int count)
     // Player hand
     for (int i = 0; i < count; i++)
     {
-        float x     = 240.0f + (i * 60.0f);
-        float y     = 800.0f - 100;
+        float x = 240.0f + (i * 60.0f);
+        float y = 800.0f - 100;
         float scale = 50.0f / hand[i].texture.width;
         DrawTextureEx(hand[i].texture,
-            {x - 25.0f, y - (hand[i].texture.height * scale) / 2.0f},
-            0.0f, scale, WHITE);
+                      {x - 25.0f, y - (hand[i].texture.height * scale) / 2.0f},
+                      0.0f, scale, WHITE);
     }
 
     drawClock(40.0f, 60.0f, 140, 700, 35);

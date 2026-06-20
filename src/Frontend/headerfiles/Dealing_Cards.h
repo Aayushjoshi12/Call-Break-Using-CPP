@@ -1,6 +1,6 @@
 #pragma once
-#include "RendererInterface.h"
-#include "../Backend/entities.h"
+#include"RendererInterface.h"
+#include "src/Backend/headerfiles/entities.h"
 
 // ─── AnimatedCard ─────────────────────────────────────────────────────────────
 struct AnimatedCard

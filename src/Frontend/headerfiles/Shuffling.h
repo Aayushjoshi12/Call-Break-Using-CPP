@@ -2,7 +2,7 @@
 #include "raylib.h"
 #include <vector>
 #include <string>
- 
+
 // ──────────────────────────────────────────────────────────────
 //  Constants
 // ──────────────────────────────────────────────────────────────
@@ -11,7 +11,7 @@ static constexpr int   SH         = 800;
 static constexpr int   NUM_CARDS  = 52;
 static constexpr float CARD_SCALE = 0.20f;
 static constexpr int   FPS        = 60;
- 
+
 // ──────────────────────────────────────────────────────────────
 //  Enums
 // ──────────────────────────────────────────────────────────────
@@ -23,10 +23,9 @@ enum class Phase {
     RIFFLE_SPLIT,
     RIFFLE_DROP,
     RIFFLE_PUSH,
-    OVERHAND,
     SQUARE,
 };
- 
+
 // ──────────────────────────────────────────────────────────────
 //  Structs
 // ──────────────────────────────────────────────────────────────
@@ -34,11 +33,11 @@ struct ShuffleCard {
     Vector2 pos;
     float   rot;
     float   scale;
- 
+
     Vector2 posA, posB;
     float   rotA, rotB;
     float   scaleA, scaleB;
- 
+
     float   delay;
     float   dur;
     float   arcH;
@@ -47,17 +46,7 @@ struct ShuffleCard {
     float   seed;
     bool    landed;
 };
- 
-struct OHPacket {
-    int     start, count;
-    float   startT;
-    float   dur;
-    Vector2 srcPos;
-    Vector2 dstPos;
-    float   dstRot;
-    float   arcH;
-};
- 
+
 // ──────────────────────────────────────────────────────────────
 //  CardShuffle Class
 // ──────────────────────────────────────────────────────────────
@@ -65,20 +54,19 @@ class CardShuffle {
 public:
     CardShuffle();
     ~CardShuffle();
- 
+
     void Init(const char* imagePath);
     void Update();
     void Draw();
     void Unload();
     void Run(const char* imagePath);
     bool isDone() const;
- 
+
 private:
     // ── Card data ──
     std::vector<ShuffleCard> m_cards;
     std::vector<int>         m_dropOrder;
-    std::vector<OHPacket>    m_packets;
- 
+
     // ── Phase state ──
     Phase       m_phase;
     float       m_time;
@@ -87,31 +75,28 @@ private:
     bool        m_setupDone;
     const char* m_label;
     bool        m_done;
- 
+
     // ── Cut state ──
     int         m_cutAt;
- 
+
     // ── Riffle state ──
     int         m_riffleCount;
     int         m_rifflesTotal;
     Vector2     m_leftBase;
     Vector2     m_rightBase;
- 
-    // ── Overhand state ──
-    int         m_overhands;
- 
+
     // ── Rendering ──
     Texture2D   m_tex;
     Texture2D   m_bgTex;
     float       m_cardW;
     float       m_cardH;
     bool        m_placeholder;
- 
+
     // ── Font & animated text ──
     Font        m_font;
     float       m_dotTimer;
     int         m_dotCount;
- 
+
     // ── Math helpers ──
     float   Lerp(float a, float b, float t);
     Vector2 LerpV(Vector2 a, Vector2 b, float t);
@@ -123,12 +108,12 @@ private:
     float   RandF(float lo, float hi);
     int     RandI(int lo, int hi);
     float   SmoothNoise(float x);
- 
+
     // ── Card helpers ──
     void SnapSource(ShuffleCard& c);
     void StackAllCards(float baseRot = 0.f);
     void AnimateCard(ShuffleCard& c, float phaseT, Phase ph);
- 
+
     // ── Phase setups ──
     void SetupIdle();
     void SetupCutLift();
@@ -137,16 +122,14 @@ private:
     void SetupRiffleSplit();
     void SetupRiffleDrop();
     void SetupRifflePush();
-    void SetupOverhand();
     void SetupSquare();
- 
+
     // ── Phase update ──
-    void UpdateOverhand(float elapsed);
     void ApplyTremor();
     void StartPhase(Phase p);
     void AdvancePhase();
     void RunSetup();
- 
+
     // ── Draw helpers ──
     void DrawCards();
     void DrawUI();

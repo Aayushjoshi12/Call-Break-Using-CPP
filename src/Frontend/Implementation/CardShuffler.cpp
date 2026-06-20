@@ -1,9 +1,8 @@
-#include "CardShuffler.h"
+#include "../headerfiles/CardShuffler.h"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DEAL ANIMATION
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// ══════════════════════
 DealAnimation::DealAnimation()
 {
     currentCard  = 0;
