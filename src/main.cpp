@@ -1,12 +1,12 @@
 #include <raylib.h>
 #include <iostream>
-#include "Frontend/Homedesign.h"
-#include "Frontend/shuffling.h"
-#include "Frontend/HandleMusic.h"
-#include "Frontend/CardShuffler.h"
-#include "Frontend/RendererInterface.h"
-#include "Backend/entities.h"
-#include "Frontend/bid_screen.h"
+#include "Frontend/headerfiles/Homedesign.h"
+#include "Frontend/headerfiles/Shuffling.h"
+#include "Frontend/headerfiles/HandleMusic.h"
+#include "Frontend/headerfiles/Dealing_Cards.h"
+#include "Frontend/headerfiles/RendererInterface.h"
+#include "Backend/headerfiles/entities.h"
+#include "Frontend/headerfiles/Bid_Screen.h"
 
 float screenwidth = 1200, screenheight = 800;
 enum GameState
@@ -73,7 +73,9 @@ int main()
             switch (currentplaybotstate)
             {
             case Shuffling:
+
             {
+            
                 cardShuffle.Update();
                 if (!dealtcards)
                 {
