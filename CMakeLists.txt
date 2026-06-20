@@ -12,7 +12,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(raylib)
 
-add_executable(MyGame src/main.cpp)
+add_executable(MyGame 
+src/main.cpp
+src/Frontend/Implementation/Homedesign.cpp
+src/Frontend/Implementation/shuffling.cpp
+src/Frontend/Implementation/HandleMusic.cpp
+src/Frontend/Implementation/RendererInterface.cpp
+src/Frontend/Implementation/bid_screen.cpp
+src/Frontend/Implementation/CardShuffler.cpp
+src/Backend/Implementation/entities.cpp
+)
 target_link_libraries(MyGame raylib)
 
 if(WIN32)
