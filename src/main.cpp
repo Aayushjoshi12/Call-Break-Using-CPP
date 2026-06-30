@@ -24,14 +24,15 @@ enum PlayBotState
 GameState currentstate = Home;
 PlayBotState currentplaybotstate = Shuffling;
 
-Home_UI HOME;
-CardShuffle cardShuffle;
+
 
 int main()
 {
     InitWindow(screenwidth, screenheight, "Call Break");
     InitAudioDevice();
+    Home_UI HOME;
     HOME.load();
+    CardShuffle cardShuffle;
     HandleMusic musicHandler;
     Renderer renderer;
     DealAnimation dealAnim;
@@ -42,6 +43,7 @@ int main()
 
     bool dealtcards = false;
     bool dealStarted = false;
+    bool bidchosen=false;
 
     cardShuffle.Init("../Assets/Image files/backhand.jpg");
     Player *players[4] = {
@@ -81,8 +83,11 @@ int main()
                 {
                     Deck deck;
                     deck.shuffle();
-                    for (int i = 0; i < 52; i++)
+                    for (int i = 0; i < 52; i++){
                         players[i % 4]->receiveCard(deck.cardAt(i));
+                        players[i % 4]->organizeHand();
+                    }
+
                     dealtcards = true;
                 }
                 if (cardShuffle.isDone()){
@@ -112,8 +117,14 @@ int main()
                 break;
             }
             case Playing:
-            { 
-                bidScreen.Update();
+            {   
+                if(!bidchosen){
+                    bidScreen.Update();
+                    if(bidScreen.confirmed){
+                        bidchosen=true;
+                    }
+                }
+              
                 // Handle playing logic
                 break;
             }
@@ -159,8 +170,10 @@ int main()
             case Playing:
             {
                 renderer.drawWholeInterface(players[0]->hand, dealAnim.getDealtCount());
-                bidScreen.Draw();
-
+                if(!bidchosen){
+                    bidScreen.Draw();
+                }
+               
                 break;
             }
             } // ← closes inner switch (currentplaybotstate)

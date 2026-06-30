@@ -19,7 +19,7 @@ src/Frontend/Implementation/shuffling.cpp
 src/Frontend/Implementation/HandleMusic.cpp
 src/Frontend/Implementation/RendererInterface.cpp
 src/Frontend/Implementation/bid_screen.cpp
-src/Frontend/Implementation/CardShuffler.cpp
+src/Frontend/Implementation/Dealing_Cards.cpp
 src/Backend/Implementation/entities.cpp
 )
 target_link_libraries(MyGame raylib)

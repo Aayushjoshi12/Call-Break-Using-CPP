@@ -1,4 +1,4 @@
-#include "entities.h"
+#include "../headerfiles/entities.h"
 #include <cstdlib>
 #include <string>
 #include <ctime>
@@ -10,10 +10,10 @@ Card::Card() : suit("spades"), value(0), index(0) {
 
 
 void Card::load(int cardNum) {
-    int n = (cardNum - 1) / 13;
+    suit_index = (cardNum - 1) / 13;
     value = (cardNum - 1) % 13 + 2;
     string suits_array[4]={"spades", "clubs", "hearts", "diamonds"};
-    suit=suits_array[n];
+    suit=suits_array[suit_index];
 
     string name = to_string(value) + "_of_" + suit + ".png";
 
@@ -52,8 +52,17 @@ void Deck::shuffle() {
 int Deck::cardAt(int i) {
     return raw[i];
 }
-
-// ───────── PLAYER ─────────
+void Player::organizeHand()
+{
+ 
+  for(int i=0;i<handSize-1;i++){
+    for(int j=i+1;j<handSize;j++){
+      if((hand[i].suit_index>hand[j].suit_index)||(hand[i].suit_index==hand[j].suit_index && hand[i].value>hand[j].value)){
+        swap(hand[i],hand[j]);
+      }
+    }
+  }
+}// ───────── PLAYER ─────────
 Player::Player(bool ishuman) {
     handSize = 0;
     bid = tricksWon = score = 0;

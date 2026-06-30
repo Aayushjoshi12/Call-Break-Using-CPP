@@ -8,8 +8,10 @@ class Card {
 public:
     std::string suit;
     int value;
+    int suit_index;
     Texture2D texture;
     int index;
+   
 
     Card();
 
@@ -36,8 +38,9 @@ public:
     int handSize;
     bool isHuman;
     Player();
-    Player(bool ishuman);     
-     void receiveCard(int cardNum);
+    Player(bool ishuman);   
+    void organizeHand();  
+    void receiveCard(int cardNum);
     void unloadCards();
     int bid;
     int tricksWon;
