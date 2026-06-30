@@ -1,4 +1,4 @@
-#include "../headerfiles/CardShuffler.h"
+#include "../headerfiles/Dealing_Cards.h"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DEAL ANIMATION

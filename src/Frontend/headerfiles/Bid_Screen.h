@@ -13,6 +13,7 @@ private:
 
 public:
     BidScreen();
+    bool confirmed;
 
     void Update();
     void Draw();
