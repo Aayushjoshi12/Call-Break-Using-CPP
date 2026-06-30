@@ -6,8 +6,8 @@
 // ──────────────────────────────────────────────────────────────
 //  Constants
 // ──────────────────────────────────────────────────────────────
-static constexpr int   SW         = 1100;
-static constexpr int   SH         = 700;
+static constexpr int   SW         = 1280;
+static constexpr int   SH         = 800;
 static constexpr int   NUM_CARDS  = 52;
 static constexpr float CARD_SCALE = 0.20f;
 static constexpr int   FPS        = 60;
@@ -23,14 +23,13 @@ enum class Phase {
     RIFFLE_SPLIT,
     RIFFLE_DROP,
     RIFFLE_PUSH,
-    OVERHAND,
     SQUARE,
 };
 
 // ──────────────────────────────────────────────────────────────
 //  Structs
 // ──────────────────────────────────────────────────────────────
-struct Card {
+struct ShuffleCard {
     Vector2 pos;
     float   rot;
     float   scale;
@@ -48,16 +47,6 @@ struct Card {
     bool    landed;
 };
 
-struct OHPacket {
-    int     start, count;
-    float   startT;
-    float   dur;
-    Vector2 srcPos;
-    Vector2 dstPos;
-    float   dstRot;
-    float   arcH;
-};
-
 // ──────────────────────────────────────────────────────────────
 //  CardShuffle Class
 // ──────────────────────────────────────────────────────────────
@@ -66,20 +55,17 @@ public:
     CardShuffle();
     ~CardShuffle();
 
-    // Core lifecycle
     void Init(const char* imagePath);
     void Update();
     void Draw();
     void Unload();
-
-    // Run the full loop
     void Run(const char* imagePath);
+    bool isDone() const;
 
 private:
     // ── Card data ──
-    std::vector<Card>     m_cards;
-    std::vector<int>      m_dropOrder;
-    std::vector<OHPacket> m_packets;
+    std::vector<ShuffleCard> m_cards;
+    std::vector<int>         m_dropOrder;
 
     // ── Phase state ──
     Phase       m_phase;
@@ -88,6 +74,7 @@ private:
     float       m_duration;
     bool        m_setupDone;
     const char* m_label;
+    bool        m_done;
 
     // ── Cut state ──
     int         m_cutAt;
@@ -98,14 +85,17 @@ private:
     Vector2     m_leftBase;
     Vector2     m_rightBase;
 
-    // ── Overhand state ──
-    int         m_overhands;
-
     // ── Rendering ──
     Texture2D   m_tex;
+    Texture2D   m_bgTex;
     float       m_cardW;
     float       m_cardH;
     bool        m_placeholder;
+
+    // ── Font & animated text ──
+    Font        m_font;
+    float       m_dotTimer;
+    int         m_dotCount;
 
     // ── Math helpers ──
     float   Lerp(float a, float b, float t);
@@ -120,9 +110,9 @@ private:
     float   SmoothNoise(float x);
 
     // ── Card helpers ──
-    void SnapSource(Card& c);
+    void SnapSource(ShuffleCard& c);
     void StackAllCards(float baseRot = 0.f);
-    void AnimateCard(Card& c, float phaseT, Phase ph);
+    void AnimateCard(ShuffleCard& c, float phaseT, Phase ph);
 
     // ── Phase setups ──
     void SetupIdle();
@@ -132,11 +122,9 @@ private:
     void SetupRiffleSplit();
     void SetupRiffleDrop();
     void SetupRifflePush();
-    void SetupOverhand();
     void SetupSquare();
 
     // ── Phase update ──
-    void UpdateOverhand(float elapsed);
     void ApplyTremor();
     void StartPhase(Phase p);
     void AdvancePhase();
