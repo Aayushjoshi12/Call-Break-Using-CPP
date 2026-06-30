@@ -10,29 +10,29 @@ Renderer::Renderer()
     goldColor = {255, 215, 0, 255};
     mute = LoadTexture("../Assets/Image files/mute.png");
 
-    for (int i = 0; i < 13; i++)
+    for (int card = 0; card < 13; card++)
     {
-        string path = "../Assets/Image files/cards/" + to_string(i + 2) + "_of_clubs.png";
-        cards[i] = LoadTexture(path.c_str());
+        string path = "../Assets/Image files/cards/" + to_string(card + 2) + "_of_clubs.png";
+        cards[card] = LoadTexture(path.c_str());
     }
 }
 
-void Renderer::drawCardBack(float x, float y)
+void Renderer::drawCardBack(float positionofcardsX, float positionofcardsY)
 {
     float scale = 70.0f / cardBack.width;
-    DrawTextureEx(cardBack, {x - 35.0f, y - (cardBack.height * scale) / 2}, 0.0f, scale, WHITE);
+    DrawTextureEx(cardBack, {positionofcardsX - 35.0f, positionofcardsY - (cardBack.height * scale) / 2}, 0.0f, scale, WHITE);
 }
 
-void Renderer::drawTable(int x, int y)
+void Renderer::drawTable(int TablePositionX, int TablePositionY)
 {
     float scale = 800.0f / table.width;
-    DrawTextureEx(table, {x - 400.0f, y - (table.height * scale) / 2}, 0.0f, scale, WHITE);
+    DrawTextureEx(table, {TablePositionX - 400.0f, TablePositionY - (table.height * scale) / 2}, 0.0f, scale, WHITE);
 }
 
-void Renderer::drawCard(int index, int x, int y)
+void Renderer::drawCard(int index, int Postionx, int Postiony)
 {
     float scale = 50.0f / cards[index].width;
-    DrawTextureEx(cards[index], {x - 25.0f, y - (cards[index].height * scale) / 2}, 0.0f, scale, WHITE);
+    DrawTextureEx(cards[index], {Postionx - 25.0f, Postiony - (cards[index].height * scale) / 2}, 0.0f, scale, WHITE);
 }
 
 void Renderer::drawBackground()
@@ -44,27 +44,27 @@ void Renderer::drawBackground()
         {0, 0}, 0.0f, WHITE);
 }
 
-void Renderer::drawMute(float x, float y)
+void Renderer::drawMute(float Mutex, float Mutey)
 {
     float scale = 30.0f / mute.width;
-    DrawTextureEx(mute, {x - 15.0f, y - 15.0f}, 0.0f, scale, WHITE);
+    DrawTextureEx(mute, {Mutex - 15.0f, Mutey - 15.0f}, 0.0f, scale, WHITE);
 }
 
-void Renderer::drawClock(float currentTime, float totalTime, int x, int y, int radius)
+void Renderer::drawClock(float currentTime, float totalTime, int Circlex, int Circley, int radius)
 {
     float fraction = currentTime / totalTime;
     float startAngle = -90.0f;
     float endAngle = -90.0f + (360.0f * fraction);
 
-    DrawCircle(x, y, radius, DARKGRAY);
+    DrawCircle(Circlex, Circley, radius, DARKGRAY);
     DrawCircleSector(
-        {(float)x, (float)y},
+        {(float)Circlex, (float)Circley},
         radius, startAngle, endAngle, 36,
         fraction > 0.3f ? GREEN : RED);
-    DrawCircleLines(x, y, radius, WHITE);
+    DrawCircleLines(Circlex, Circley, radius, WHITE);
 
     string text = to_string((int)currentTime);
-    DrawText(text.c_str(), x - 10, y - 10, 20, WHITE);
+    DrawText(text.c_str(), Circlex - 10, Circley - 10, 20, WHITE);
 }
 
 void Renderer::drawWholeInterface(Card *hand, int count)
