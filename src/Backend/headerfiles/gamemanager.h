@@ -1,0 +1,20 @@
+class RoundManager
+{
+public:
+    vector<Move> moves;
+    string leadsuit = "";
+    string currentBestSuit = "";
+    int currentBest = 0;
+    int currentPlayer = 0;
+    bool isaifirstmove = false;
+    int winner = -1;
+    bool finished = false;
+
+    void startRound(int player_id, Player *players[4]);
+    bool isValidMove(Player *p, int cardIndex);
+
+    // Primul
+    bool updateRound(Player *players[4]);
+
+    int getWinner();
+};
