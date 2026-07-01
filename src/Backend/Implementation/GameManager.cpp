@@ -4,8 +4,8 @@
 #include"../headerfiles/TimeManager.h"
 #include<iostream>
 
-GameManager::GameManager() : TOTAL_HANDS(2), handsPlayed(0), needNewHand(false) {}
-// ───────── GAMEMANAGER ─────────
+GameManager::GameManager() : TOTAL_HANDS(5), handsPlayed(0), needNewHand(false) {}
+
 void GameManager::updateGame(Player *players[4])
 {
     if (gameOver)
@@ -91,4 +91,33 @@ void GameManager::updateGame(Player *players[4])
         waitingForNextRound = true;
         roundEndDelay = ROUND_END_DELAY;
     }
+}
+//Prakrit
+
+void GameManager::calculateScores(Player *players[4])
+{
+    for (int i = 0; i < 4; i++)
+    {
+        if (players[i]->tricksWon < players[i]->bid)
+        {
+            scores[handsPlayed][i] = -players[i]->bid;
+            players[i]->score += scores[handsPlayed][i];
+           
+        }
+        else
+        {
+            scores[handsPlayed][i] = players[i]->bid + (1/10.0f)*(players[i]->tricksWon-players[i]->bid);
+            players[i]->score += scores[handsPlayed][i];
+            
+        }
+    }
+
+ for (int i = 0; i < 4; i++) {
+    players[i]->tricksWon = 0;
+    players[i]->bid = 0;
+    for (int j = 0; j < players[i]->handSize; j++) {
+        players[i]->hand[j].unload();
+    }
+    players[i]->handSize = 0;
+}
 }

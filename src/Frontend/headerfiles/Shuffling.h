@@ -61,6 +61,7 @@ public:
     void Unload();
     void Run(const char* imagePath);
     bool isDone() const;
+    void Reset();
 
 private:
     // ── Card data ──

@@ -345,7 +345,7 @@ void CardShuffle::AdvancePhase() {
         case Phase::CUT_DROP:     StartPhase(Phase::CUT_MERGE);   break;
         case Phase::CUT_MERGE:
             m_riffleCount  = 0;
-            m_rifflesTotal = RandI(2, 3);
+            m_rifflesTotal = 1;
             StartPhase(Phase::RIFFLE_SPLIT);
             break;
         case Phase::RIFFLE_SPLIT: StartPhase(Phase::RIFFLE_DROP); break;
@@ -540,4 +540,27 @@ void CardShuffle::Run(const char* imagePath) {
 
 bool CardShuffle::isDone() const {
     return m_done;
+}
+void CardShuffle::Reset() {
+    m_cards.resize(NUM_CARDS);
+    StackAllCards();
+    for (int i = 0; i < NUM_CARDS; ++i) {
+        ShuffleCard& c  = m_cards[i];
+        c.posA   = c.pos;  c.posB   = c.pos;
+        c.rotA   = c.rot;  c.rotB   = c.rot;
+        c.scaleA = 1.f;    c.scaleB = 1.f;
+        c.delay  = 0.f;    c.dur    = 1.f;
+        c.arcH   = 0.f;
+        c.half   = 0;
+        c.seed   = RandF(0.f, 100.f);
+        c.landed = false;
+    }
+
+    m_phase     = Phase::IDLE;
+    m_time      = 0.f;
+    m_globalTime = 0.f;
+    m_duration  = 1.2f;
+    m_setupDone = true;
+    m_label     = "Deck at rest";
+    m_done      = false;   // ← the actual fix
 }

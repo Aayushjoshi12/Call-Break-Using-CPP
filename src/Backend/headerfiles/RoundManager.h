@@ -1,5 +1,5 @@
-#ifndef ROUNDMANAGER_H
-#define ROUNDMANAGER_H
+#pragma once
+#include "entities.h"
 
 #include <vector>
 #include <string>
@@ -16,10 +16,9 @@ public:
     int winner = -1;
     bool finished = false;
 
-    void startRound(int player_id, Player players[4]);
-    bool isValidMove(Player p, int cardIndex);
+    void startRound(int player_id, Player *players[4]);
+    bool isValidMove(Player *p, int cardIndex);
     bool updateRound(Player *players[4]);
     int getWinner();
 };
 
-#endif

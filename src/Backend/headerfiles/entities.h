@@ -37,13 +37,22 @@ public:
     Card hand[13];
     int handSize;
     bool isHuman;
+    Rectangle rects[13];
     Player();
     Player(bool ishuman);   
+    int getCardIndex(std::string leadSuit, int currentBest,bool isAIFirstMove);
     void organizeHand();  
     void receiveCard(int cardNum);
     void unloadCards();
+    void getPlayedCard();
+    int chooseBid();
+    Card playCard(int index);
     int bid;
     int tricksWon;
-    int score;
+    float score;
     
+};
+struct Move {
+    int player_id;
+    Card cardPlayed;
 };

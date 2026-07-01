@@ -2,25 +2,35 @@
 
 BidScreen::BidScreen()
 {
-
     selectedBid = 0;
     cinzel = LoadFontEx("../Assets/fonts/Cinzel_Font.ttf", 96, 0, 0);
     confirmed = false;
 
-    float panelX = (GetScreenWidth() - 500) / 2;
-    float panelY = (GetScreenHeight() - 500) / 2;
+    // Must match Draw()'s panel size exactly, or buttons drift from what's rendered.
+    float panelW = 600;
+    float panelH = 500;
+    float panelX = (GetScreenWidth() - panelW) / 2;
+    float panelY = (GetScreenHeight() - panelH) / 2;
 
-    // Row 1 — inside panel
-    bidButtons[0] = {panelX + 20, panelY + 150, 100, 100};
-    bidButtons[1] = {panelX + 140, panelY + 150, 100, 100};
-    bidButtons[2] = {panelX + 260, panelY + 150, 100, 100};
-    bidButtons[3] = {panelX + 380, panelY + 150, 100, 100};
+    float circleRadius = 42;
 
-    // Row 2 — inside panel
-    bidButtons[4] = {panelX + 20, panelY + 300, 100, 100};
-    bidButtons[5] = {panelX + 140, panelY + 300, 100, 100};
-    bidButtons[6] = {panelX + 260, panelY + 300, 100, 100};
-    bidButtons[7] = {panelX + 380, panelY + 300, 100, 100};
+    // Build one Rectangle per chip, centered on the same point Draw() uses
+    // for its circle (centerX, centerY), sized to fully cover the circle.
+    for (int i = 0; i < 8; i++)
+    {
+        int row = i / 4;
+        int col = i % 4;
+
+        float centerX = panelX + 95 + col * 140;
+        float centerY = panelY + 150 + row * 120;
+
+        bidButtons[i] = {
+            centerX - circleRadius,
+            centerY - circleRadius,
+            circleRadius * 2,
+            circleRadius * 2
+        };
+    }
 }
 
 void BidScreen::Update()
@@ -36,6 +46,7 @@ void BidScreen::Update()
         }
     }
 }
+
 void BidScreen::Draw()
 {
     float panelW = 600;
@@ -62,7 +73,7 @@ void BidScreen::Draw()
     // Top divider
     DrawLineEx({panelX + 40, panelY + 78}, {panelX + panelW - 40, panelY + 78}, 2, Fade(GOLD, 0.5f));
 
-    // Bid circles (smaller radius + tighter spacing)
+    // Bid circles
     float circleRadius = 42;
     for (int i = 0; i < 8; i++)
     {
@@ -70,7 +81,7 @@ void BidScreen::Draw()
         int col = i % 4;
 
         float centerX = panelX + 95 + col * 140;
-        float centerY = panelY + 150 + row * 120;   // tighter row spacing
+        float centerY = panelY + 150 + row * 120;
 
         bool selected = (selectedBid == i + 1);
 
@@ -152,7 +163,7 @@ void BidScreen::Draw()
     }
 }
 
-    int BidScreen::GetSelectedBid()
-    {
-        return selectedBid;
-    }
+int BidScreen::GetSelectedBid()
+{
+    return selectedBid;
+}
