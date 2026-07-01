@@ -16,7 +16,6 @@ private:
     Font boldFont;
     Color goldColor;
     Texture2D mute;
-
 public:
     Renderer();
     ~Renderer();

@@ -1,10 +1,10 @@
 #include "../headerfiles/Bid_Screen.h"
-
+#include"../text.h"
 BidScreen::BidScreen()
 {
 
     selectedBid = 0;
-    cinzel = LoadFontEx("../Assets/fonts/Cinzel_Font.ttf", 96, 0, 0);
+    cinzel = LoadFontEx(FONT_CINZEL, 96, 0, 0);
     confirmed = false;
 
     float panelX = (GetScreenWidth() - 500) / 2;

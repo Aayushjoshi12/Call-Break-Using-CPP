@@ -1,0 +1,9 @@
+const char* FONT_CINZEL = "../Assets/Fonts/Cinzel-Bold.ttf";
+const char* IMG_BACKGROUND = "../Assets/Image files/HomeUI.png";
+const char* IMG_MACHINE = "../Assets/Image files/robot-bot-icon.png";
+const char* IMG_HUMAN = "../Assets/Image files/human.png";
+const char* MUSIC_CASINO = "../Assets/Music/casino.mp3";
+const char* IMG_MUTE = "../Assets/Image files/mute.png";
+const char* IMG_UNMUTE = "../Assets/Image files/unmute.png";
+const char* IMG_TABLE = "../Assets/Image files/table.png";
+const char* IMG_CARD_BACK = "../Assets/Image files/backhand.jpg";

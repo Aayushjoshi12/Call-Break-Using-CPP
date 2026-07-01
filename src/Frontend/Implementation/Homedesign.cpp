@@ -2,7 +2,8 @@
 #include <iostream>
 #include <raylib.h>
 #include "../headerfiles/Homedesign.h"
- 
+#include"../text.h"
+
 Color border_color_Home = {209, 194, 193, 255};
 Color Text_color_Home = {241, 241, 241, 255};
  
@@ -11,22 +12,22 @@ Rectangle img_bot_position2 = {870, 310, (float)220, (float)225};
 Rectangle img_bot_border = {150, 310, (float)220, (float)245};
 Rectangle img_human_border = {870, 300, (float)220, (float)245};
  
-void Home_UI::load()
+Home_UI::Home_UI()
 {
-    Cinzel_load = LoadFontEx("../Assets/Fonts/Cinzel-Bold.ttf", 256, 0, 0);
-    Background_Img_load = LoadTexture("../Assets/Image files/HomeUI.png");
-    img_machine_load = LoadTexture("../Assets/Image files/robot-bot-icon.png");
-    img_human_load = LoadTexture("../Assets/Image files/human.png");
+    Cinzel_load = LoadFontEx(FONT_CINZEL, 256, 0, 0);
+    Background_Img_load = LoadTexture(IMG_BACKGROUND);
+    img_machine_load = LoadTexture(IMG_MACHINE);
+    img_human_load = LoadTexture(IMG_HUMAN);
 }
  
-void Home_UI::unload()
+Home_UI::~Home_UI()
 {
     UnloadFont(Cinzel_load);
     UnloadTexture(Background_Img_load);
     UnloadTexture(img_machine_load);
     UnloadTexture(img_human_load);
 }
- 
+
 void Home_UI::text_CallBreak()
 {
     DrawTextEx(
@@ -58,7 +59,7 @@ void Home_UI::text_CallBreak()
         0.5f,
         GOLD);
 }
- 
+
 void Home_UI::border_draw(Rectangle Border)
 {
     DrawRectangleRoundedLinesEx(Border, 0.3f, 20, 2, border_color_Home);

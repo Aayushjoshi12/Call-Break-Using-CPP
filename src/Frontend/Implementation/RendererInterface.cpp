@@ -1,14 +1,15 @@
 #include "../headerfiles/RendererInterface.h"
+#include"../text.h"
 
 Renderer::Renderer()
 {
-    cardBack = LoadTexture("../Assets/Image files/backhand.jpg");
-    table = LoadTexture("../Assets/Image files/table.png");
-    background = LoadTexture("../Assets/Image files/BackGround.png");
-    font = LoadFontEx("../Assets/fonts/Cinzel_Font.ttf", 96, 0, 0);
-    boldFont = LoadFontEx("../Assets/fonts/Cinzel-Bold.ttf", 96, 0, 0);
+    cardBack = LoadTexture(IMG_CARD_BACK);
+    table = LoadTexture(IMG_TABLE);
+    background = LoadTexture(IMG_BACKGROUND);
+    font = LoadFontEx(FONT_CINZEL, 96, 0, 0);
+    boldFont = LoadFontEx(FONT_CINZEL, 96, 0, 0);
     goldColor = {255, 215, 0, 255};
-    mute = LoadTexture("../Assets/Image files/mute.png");
+    mute = LoadTexture(IMG_MUTE);
 
     for (int card = 0; card < 13; card++)
     {
