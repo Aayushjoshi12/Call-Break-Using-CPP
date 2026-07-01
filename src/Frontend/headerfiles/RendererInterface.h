@@ -25,6 +25,8 @@ public:
     void drawCard(int index, int x, int y);
     void drawClock(float currentTime, float totalTime, int x, int y, int radius);
     void drawBackground();
+    void drawWholeInterface(Card *hand, int count,int round);
+    void drawPlayedCards(vector<Move> &moves,int x,int y);
     void drawMute(float x, float y);
-    void drawWholeInterface(Card* hand, int count);
+    void drawWholeInterface(Card* hand, int count,Rectangle* rects,vector<Move> moves,float time,int round);
 };
