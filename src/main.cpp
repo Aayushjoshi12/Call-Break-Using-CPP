@@ -169,6 +169,15 @@ int main()
 
                     currentplaybotstate = displayscores;
                 }
+                if(game.gameOver){
+                    currentstate = Home;
+                    game.gameOver = false;
+                    game.handsPlayed = 0;
+                    game.roundsPlayed = 0;
+                    for(int i = 0; i < 4; i++){
+                        players[i]->score = 0.0f;
+                    }
+                }
 
                 game.updateGame(players);
                 for(int i = 0; i < 4; i++)
@@ -184,7 +193,7 @@ int main()
                 if (scoredelay <= 0)
                 {
                     currentplaybotstate = Shuffling;
-                    scoredelay = 30.0f;
+                    scoredelay = 10.0f;
                 }
                 break;
             }

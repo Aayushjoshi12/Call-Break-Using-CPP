@@ -22,7 +22,7 @@ void ResultScreen::Draw(float scores[5][4])
         {0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()},
         {0, 0}, 0.0f, WHITE);
 
-    int total[4] = {0}, winner = 0;
+    float total[4] = {0}; int winner = 0;
     int x[4] = {400, 620, 840, 1060};
 
     for (int player = 0; player < 4; player++)
@@ -43,9 +43,9 @@ void ResultScreen::Draw(float scores[5][4])
         DrawTextEx(myFont, TextFormat("ROUND %d", round + 1), {100, (float)y}, 28, 2, WHITE);
         for (int player = 0; player < 4; player++)
         {
-            int val = scores[round][player];
+            float val = scores[round][player];
             Color c = (val < 0) ? RED : (val > 0) ? YELLOW : GRAY;
-            DrawTextEx(myFont, TextFormat("%d", val), {(float)x[player], (float)y}, 28, 2, c);
+            DrawTextEx(myFont, TextFormat("%.1f", val), {(float)x[player], (float)y}, 28, 2, c);
         }
     }
 
@@ -54,7 +54,7 @@ void ResultScreen::Draw(float scores[5][4])
     for (int player = 0; player < 4; player++)
     {
         Color c = (total[player] < 0) ? RED : GREEN;
-        DrawTextEx(myFont, TextFormat("%d", total[player]), {(float)x[player], 680}, 32, 2, c);
+        DrawTextEx(myFont, TextFormat("%.1f", total[player]), {(float)x[player], 680}, 32, 2, c);
     }
 
     DrawTextEx(myFont, TextFormat("CONGRATULATIONS PLAYER %d ON WINNING", winner + 1), {300, 750}, 28, 2, WHITE);
