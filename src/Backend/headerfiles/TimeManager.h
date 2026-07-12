@@ -5,7 +5,7 @@
 class TimeManager
 {
 public:
-    float totalTime = 60.0f;
+    const float totalTime = 60.0f;
     float currentTime = 60.0f;
 
     void update();
