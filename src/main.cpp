@@ -7,6 +7,7 @@
 #include "Frontend/headerfiles/RendererInterface.h"
 #include "Backend/headerfiles/entities.h"
 #include "Frontend/headerfiles/Bid_Screen.h"
+#include "Network/headerfiles/client.h"
 
 float screenwidth = 1200, screenheight = 800;
 enum GameState
@@ -37,6 +38,7 @@ int main()
     Renderer renderer;
     DealAnimation dealAnim;
     BidScreen bidScreen;
+    Client client;
 
     float dealCardTimer = 0.0f;
     int cardsToShow = 0;
@@ -54,6 +56,10 @@ int main()
     };
 
     SetTargetFPS(100);
+    if (!client.init("127.0.0.1", 1234))
+{
+    std::cout << "Failed to connect to server!" << std::endl;
+}
 
     while (WindowShouldClose() == false)
     {
