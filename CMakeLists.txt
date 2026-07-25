@@ -17,10 +17,14 @@ src/main.cpp
 src/Frontend/Implementation/Homedesign.cpp
 src/Frontend/Implementation/shuffling.cpp
 src/Frontend/Implementation/HandleMusic.cpp
+src/Frontend/Implementation/score.cpp
 src/Frontend/Implementation/RendererInterface.cpp
 src/Frontend/Implementation/bid_screen.cpp
 src/Frontend/Implementation/Dealing_Cards.cpp
 src/Backend/Implementation/entities.cpp
+src/Backend/Implementation/GameManager.cpp
+src/Backend/Implementation/TimeManager.cpp
+src/Backend/Implementation/RoundManager.cpp
 )
 target_link_libraries(MyGame raylib)
 

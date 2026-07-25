@@ -1,17 +1,16 @@
 #pragma once
 #include "entities.h"
 #include <vector>
-#include "GameManager.h"
-#include"RoundManager.h"
-#include"TimeManager.h"
+#include "RoundManager.h"
+#include "TimeManager.h"
 
 #include <string>
 
-class GameManager
-{
+class GameManager {
 public:
     RoundManager roundManager;
     TimeManager timeManager;
+    GameManager();
     int handsPlayed;
     const int TOTAL_HANDS;
     bool needNewHand;
@@ -23,7 +22,7 @@ public:
     const float ROUND_END_DELAY = 2.0f;
     bool waitingForNextRound = false;
 
-    GameManager();
-    void updateGame(Player *players[4]);
-    void calculateScores(Player *players[4]);
+    void updateGame(Player* players[4]);
+    void calculateScores(Player* players[4]);
+    float scores[5][4];
 };
