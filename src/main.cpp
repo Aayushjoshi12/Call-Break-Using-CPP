@@ -86,11 +86,16 @@ int main()
     bool myTurn = false;
     int pendingCardIndex = -1;
     int currentTurnPlayerId = -1;
+    int localPlayerId = -1;
+    std::string seatLabels[4] = {"You", "Player 2", "Player 3", "Player 4"};
     std::vector<Move> humanMoves;
     int humanHandsPlayed = 0;
 
     // NEW: has this client sent its bid to the server for the current hand?
     bool bidSubmitted = false;
+    bool bidAutoSubmitted = false;
+    float bidAutoTimer = 0.0f;
+    const float BID_AUTO_SUBMIT_DELAY = 3.0f;
 
     // NEW: trickWon no longer clears humanMoves synchronously (that was
     // wiping the trick-winning card before it was ever drawn, since
@@ -108,6 +113,22 @@ int main()
 
     SetTargetFPS(100);
 
+    auto refreshCardRects = [&](Player *p)
+    {
+        if (!p)
+            return;
+
+        for (int i = 0; i < p->handSize; ++i)
+        {
+            float x = 240.0f + (i * 60.0f);
+            float y = 800.0f - 100.0f;
+            float scale = 50.0f / 100.0f;
+            float w = 70.0f * scale;
+            float h = 100.0f * scale;
+            p->rects[i] = {x - 25.0f, y - h / 2.0f, w, h};
+        }
+    };
+
     while (WindowShouldClose() == false)
     {
         musicHandler.Update();
@@ -120,12 +141,24 @@ int main()
                 currentstate = PlayBot;
             else if (HOME.isclicked() == "Human")
             {
-                if (!client.init("192.168.1.67", 54000))
+                bool connected = false;
+                const char *candidates[] = {"127.0.0.1", "localhost", "192.168.1.67"};
+                for (const char *host : candidates)
+                {
+                    if (client.init(host, 54000))
+                    {
+                        std::cout << "Client connected to server at " << host << std::endl;
+                        connected = true;
+                        break;
+                    }
+                    std::cout << "Client failed to connect to " << host << std::endl;
+                }
+
+                if (!connected)
                 {
                     std::cerr << "Failed to initialize client. Exiting." << std::endl;
                     return -1;
                 }
-                std::cout << "Client initialized. Entering main loop." << std::endl;
                 currentstate = PlayHuman;
             }
             break;
@@ -328,6 +361,11 @@ int main()
                     delete players[0];
                     players[0] = new Player(true, false);
                     players[0]->player_id = msg["params"]["player_id"].get<int>();
+                    localPlayerId = players[0]->player_id;
+                    seatLabels[0] = "You";
+                    seatLabels[1] = "Player 2";
+                    seatLabels[2] = "Player 3";
+                    seatLabels[3] = "Player 4";
                     currentTurnPlayerId = -1;
                     myTurn = false;
                     pendingCardIndex = -1;
@@ -338,6 +376,8 @@ int main()
 
                     players[0]->organizeHand();
                     cardsReceived = true;
+                    bidAutoSubmitted = false;
+                    bidAutoTimer = 0.0f;
                     std::cout << "Received cards from server." << std::endl;
                     // note it arrived, don't transition yet
                 }
@@ -361,15 +401,19 @@ int main()
                     currentTurnPlayerId = turnPlayerId;
                     myTurn = (players[0] != nullptr &&
                               players[0]->player_id == turnPlayerId);
+                    if (players[0] != nullptr)
+                        localPlayerId = players[0]->player_id;
 
                     // Every client resets its visual timer at the exact same
                     // network event. Only the active client decrements it.
                     game.timeManager.reset();
                     pendingCardIndex = -1;
                     currentplayhumanstate = humanPlaying;
+                    std::cout << "Timer reset to 60 on turn start." << std::endl;
 
                     std::cout << "Turn started: Player " << turnPlayerId
                               << (myTurn ? " (YOU)" : "") << std::endl;
+                    std::cout << "Local player id = " << players[0]->player_id << std::endl;
                 }
                 else if (method == "cardPlayed")
                 {
@@ -417,7 +461,8 @@ int main()
                     // server rejected our pick — let the player try again
                     myTurn = true;
                     pendingCardIndex = -1;
-                    game.timeManager.reset(); // FIX: give a fresh countdown for the retry
+                    game.timeManager.reset();
+                    std::cout << "Timer reset after invalid move." << std::endl;
                 }
                 else if (method == "trickWon")
                 {
@@ -443,7 +488,10 @@ int main()
                     currentTurnPlayerId = -1;
                     pendingCardIndex = -1;
                     game.timeManager.reset();
+                    std::cout << "Timer reset after hand over." << std::endl;
                     bidSubmitted = false;
+                    bidAutoSubmitted = false;
+                    bidAutoTimer = 0.0f;
                     bidScreen.confirmed = false;
                     cardShuffle.Reset();
                     shuffleDelay = SHUFFLE_DELAY;
@@ -526,6 +574,8 @@ int main()
                 if (!bidSubmitted)
                 {
                     bidScreen.Update();
+                    bidAutoTimer += GetFrameTime();
+
                     if (bidScreen.confirmed)
                     {
                         int bid = bidScreen.GetSelectedBid();
@@ -533,6 +583,19 @@ int main()
                         json bidMsg = {{"method", "submitBid"}, {"params", {{"bid", bid}}}};
                         client.send(bidMsg);
                         bidSubmitted = true;
+                        bidAutoSubmitted = true;
+                        bidAutoTimer = 0.0f;
+                    }
+                    else if (bidAutoTimer >= BID_AUTO_SUBMIT_DELAY)
+                    {
+                        int fallbackBid = players[0]->chooseBid();
+                        players[0]->bid = fallbackBid;
+                        json bidMsg = {{"method", "submitBid"}, {"params", {{"bid", fallbackBid}}}};
+                        client.send(bidMsg);
+                        bidSubmitted = true;
+                        bidAutoSubmitted = true;
+                        bidAutoTimer = 0.0f;
+                        std::cout << "Auto-submitted bid: " << fallbackBid << std::endl;
                     }
                 }
                 break;
@@ -552,30 +615,55 @@ int main()
                     }
                 }
 
-                // Only the active client runs its visual countdown. The
-                // SERVER owns timeout handling, so the client never guesses
-                // which card is legal when the clock reaches zero.
-                if (myTurn)
+                // The countdown should move for everyone so the table stays
+                // visually synchronized. The server remains the authority for
+                // timeout handling, but the local client should only send a
+                // move once it has a valid click and the turn is clearly its own.
+                refreshCardRects(players[0]);
+
+                const bool timerShouldRun = myTurn && currentTurnPlayerId > 0 && localPlayerId > 0 && currentTurnPlayerId == localPlayerId;
+
+                if (timerShouldRun)
                 {
                     game.timeManager.update(GetFrameTime());
 
-                    int idx = players[0]->getCardIndex("", 0, false);
-                    if (idx >= 0 && idx < players[0]->handSize)
+                    if (game.timeManager.currentTime <= 0.0f)
                     {
-                        pendingCardIndex = idx;
-
-                        json playMsg = {
-                            {"method", "playCard"},
-                            {"params", {{"card", players[0]->hand[idx].index}}}
-                        };
-
-                        client.send(playMsg);
-
-                        // Wait for the server's cardPlayed confirmation before
-                        // removing the card locally. This prevents the local
-                        // hand from diverging if the server rejects the move.
-                        myTurn = false;
+                        int fallbackIndex = 0;
+                        if (fallbackIndex >= 0 && fallbackIndex < players[0]->handSize)
+                        {
+                            pendingCardIndex = fallbackIndex;
+                            json playMsg = {
+                                {"method", "playCard"},
+                                {"params", {{"card", players[0]->hand[fallbackIndex].index}}}
+                            };
+                            client.send(playMsg);
+                            myTurn = false;
+                            game.timeManager.reset();
+                            std::cout << "Local timer reset after timeout play." << std::endl;
+                        }
                     }
+                    else
+                    {
+                        int idx = players[0]->getCardIndex("", 0, false);
+                        if (idx >= 0 && idx < players[0]->handSize)
+                        {
+                            pendingCardIndex = idx;
+                            json playMsg = {
+                                {"method", "playCard"},
+                                {"params", {{"card", players[0]->hand[idx].index}}}
+                            };
+                            client.send(playMsg);
+                            myTurn = false;
+                            game.timeManager.reset();
+                            std::cout << "Local timer reset after play." << std::endl;
+                        }
+                    }
+                }
+                else
+                {
+                    // Keep the timer frozen for non-active seats so the countdown
+                    // only runs for the client whose turn it is.
                 }
                 break;
             }
@@ -660,7 +748,7 @@ int main()
             case humanDealing:
             {
                 ClearBackground({22, 82, 42, 255});
-                renderer.drawWholeInterface(players[0]->hand, cardsToShow, humanHandsPlayed + 1);
+                renderer.drawWholeInterface(players[0]->hand, cardsToShow, humanHandsPlayed + 1, seatLabels, currentTurnPlayerId, localPlayerId);
                 dealAnim.draw(renderer);
                 break;
             }
@@ -669,7 +757,7 @@ int main()
             case humanBidding:
             {
                 ClearBackground({22, 82, 42, 255});
-                renderer.drawWholeInterface(players[0]->hand, players[0]->handSize, humanHandsPlayed + 1);
+                renderer.drawWholeInterface(players[0]->hand, players[0]->handSize, humanHandsPlayed + 1, seatLabels, currentTurnPlayerId, localPlayerId);
                 if (!bidSubmitted)
                 {
                     bidScreen.Draw();
@@ -686,7 +774,7 @@ int main()
                 ClearBackground({22, 82, 42, 255});
                 renderer.drawWholeInterface(players[0]->hand, players[0]->handSize, players[0]->rects,
                                              humanMoves, game.timeManager.currentTime,
-                                             humanHandsPlayed + 1);
+                                             humanHandsPlayed + 1, seatLabels, currentTurnPlayerId, localPlayerId);
                 break;
             }
             default:

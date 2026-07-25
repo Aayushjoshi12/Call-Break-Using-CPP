@@ -101,25 +101,46 @@ void Renderer::drawPlayedCards(vector<Move>& moves, int x, int y)
 }
 
 void Renderer::drawWholeInterface(Card *hand, int count, Rectangle *rects,vector<Move> moves,float time,int round)
+{
+    std::string labels[4] = {"You", "Player 2", "Player 3", "Player 4"};
+    drawWholeInterface(hand, count, rects, moves, time, round, labels, -1, -1);
+}
 
+void Renderer::drawWholeInterface(Card *hand, int count, Rectangle *rects,vector<Move> moves,float time,int round, const std::string (&labels)[4])
+{
+    drawWholeInterface(hand, count, rects, moves, time, round, labels, -1, -1);
+}
+
+void Renderer::drawWholeInterface(Card *hand, int count, Rectangle *rects,vector<Move> moves,float time,int round, const std::string (&labels)[4], int currentTurnPlayerId, int localPlayerId)
 {
     string roundLabel = "Round " + std::to_string(round);
     drawBackground();
 
-    // Bot 1 — top center
+    auto drawSeatLabel = [&](int slot, float x, float y, const std::string &name)
+    {
+        bool isActiveSeat = currentTurnPlayerId > 0 && (currentTurnPlayerId - 1) == slot;
+        std::string label = name;
+        if (isActiveSeat)
+            label = (localPlayerId > 0 && currentTurnPlayerId == localPlayerId) ? "Your Turn" : "Turn";
+        Color color = isActiveSeat ? GOLD : WHITE;
+        Vector2 size = MeasureTextEx(font, label.c_str(), 36, 2);
+        DrawTextEx(font, label.c_str(), {x - size.x / 2, y}, 36, 2, color);
+    };
+
+    // Top seat
     drawCardBack(600.0, 100.0);
-    Vector2 size1 = MeasureTextEx(font, "Bot 1", 48, 2);
-    DrawTextEx(font, "Bot 1", {600.0f - size1.x / 2, 100.0f + 108.72f - size1.y - 10}, 48, 2, WHITE);
+    drawSeatLabel(1, 600.0f, 100.0f + 108.72f - 10, labels[1]);
 
-    // Bot 2 — left
+    // Left seat
     drawCardBack(200.0, 400.0);
-    Vector2 size2 = MeasureTextEx(font, "Bot 2", 48, 2);
-    DrawTextEx(font, "Bot 2", {200.0f - size2.x / 2, 400.0f + 108.72f - size2.y - 10}, 48, 2, WHITE);
+    drawSeatLabel(2, 200.0f, 400.0f + 108.72f - 10, labels[2]);
 
-    // Bot 3 — right
+    // Right seat
     drawCardBack(1000.0, 400.0);
-    Vector2 size3 = MeasureTextEx(font, "Bot 3", 48, 2);
-    DrawTextEx(font, "Bot 3", {1000.0f - size3.x / 2, 400.0f + 108.72f - size3.y - 10}, 48, 2, WHITE);
+    drawSeatLabel(3, 1000.0f, 400.0f + 108.72f - 10, labels[3]);
+
+    // Bottom seat (local player)
+    drawSeatLabel(0, 600.0f, 720.0f, labels[0]);
 
     drawTable(600, 430);
 
@@ -150,25 +171,46 @@ void Renderer::drawWholeInterface(Card *hand, int count, Rectangle *rects,vector
     // NOTE: mute/sound button is drawn by musicHandler.Draw() in main — not here
 }
 void Renderer::drawWholeInterface(Card *hand, int count,int round)
+{
+    std::string labels[4] = {"You", "Player 2", "Player 3", "Player 4"};
+    drawWholeInterface(hand, count, round, labels, -1, -1);
+}
 
+void Renderer::drawWholeInterface(Card *hand, int count,int round, const std::string (&labels)[4])
+{
+    drawWholeInterface(hand, count, round, labels, -1, -1);
+}
+
+void Renderer::drawWholeInterface(Card *hand, int count,int round, const std::string (&labels)[4], int currentTurnPlayerId, int localPlayerId)
 {
     string roundLabel = "Round " + std::to_string(round);
     drawBackground();
 
-    // Bot 1 — top center
+    auto drawSeatLabel = [&](int slot, float x, float y, const std::string &name)
+    {
+        bool isActiveSeat = currentTurnPlayerId > 0 && (currentTurnPlayerId - 1) == slot;
+        std::string label = name;
+        if (isActiveSeat)
+            label = (localPlayerId > 0 && currentTurnPlayerId == localPlayerId) ? "Your Turn" : "Turn";
+        Color color = isActiveSeat ? GOLD : WHITE;
+        Vector2 size = MeasureTextEx(font, label.c_str(), 36, 2);
+        DrawTextEx(font, label.c_str(), {x - size.x / 2, y}, 36, 2, color);
+    };
+
+    // Top seat
     drawCardBack(600.0, 100.0);
-    Vector2 size1 = MeasureTextEx(font, "Bot 1", 48, 2);
-    DrawTextEx(font, "Bot 1", {600.0f - size1.x / 2, 100.0f + 108.72f - size1.y - 10}, 48, 2, WHITE);
+    drawSeatLabel(1, 600.0f, 100.0f + 108.72f - 10, labels[1]);
 
-    // Bot 2 — left
+    // Left seat
     drawCardBack(200.0, 400.0);
-    Vector2 size2 = MeasureTextEx(font, "Bot 2", 48, 2);
-    DrawTextEx(font, "Bot 2", {200.0f - size2.x / 2, 400.0f + 108.72f - size2.y - 10}, 48, 2, WHITE);
+    drawSeatLabel(2, 200.0f, 400.0f + 108.72f - 10, labels[2]);
 
-    // Bot 3 — right
+    // Right seat
     drawCardBack(1000.0, 400.0);
-    Vector2 size3 = MeasureTextEx(font, "Bot 3", 48, 2);
-    DrawTextEx(font, "Bot 3", {1000.0f - size3.x / 2, 400.0f + 108.72f - size3.y - 10}, 48, 2, WHITE);
+    drawSeatLabel(3, 1000.0f, 400.0f + 108.72f - 10, labels[3]);
+
+    // Bottom seat (local player)
+    drawSeatLabel(0, 600.0f, 720.0f, labels[0]);
 
     drawTable(600, 430);
 

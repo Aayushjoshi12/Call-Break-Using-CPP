@@ -83,9 +83,9 @@ int Player::getCardIndex(string leadSuit, int currentBest, bool isAIFirstMove) {
 
     if (isHuman) {
         Vector2 mouse = GetMousePosition();
+        bool clicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || IsMouseButtonReleased(MOUSE_LEFT_BUTTON);
         for (int i = 0; i < handSize; i++) {
-            if (CheckCollisionPointRec(mouse, rects[i]) &&
-                IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            if (CheckCollisionPointRec(mouse, rects[i]) && clicked) {
                 return i;
             }
         }

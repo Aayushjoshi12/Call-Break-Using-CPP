@@ -1,5 +1,6 @@
 #pragma once
 #include "entities.h"
+#include <iostream>
 #include <vector>
 #include <string>
 class TimeManager

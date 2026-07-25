@@ -28,4 +28,6 @@ public:
     void drawPlayedCards(vector<Move> &moves,int x,int y);
     void drawMute(float x, float y);
     void drawWholeInterface(Card* hand, int count,Rectangle* rects,vector<Move> moves,float time,int round);
-};
+    void drawWholeInterface(Card* hand, int count, int round, const std::string (&labels)[4]);
+    void drawWholeInterface(Card* hand, int count, Rectangle* rects, vector<Move> moves, float time, int round, const std::string (&labels)[4]);    void drawWholeInterface(Card* hand, int count, int round, const std::string (&labels)[4], int currentTurnPlayerId, int localPlayerId);
+    void drawWholeInterface(Card* hand, int count, Rectangle* rects, vector<Move> moves, float time, int round, const std::string (&labels)[4], int currentTurnPlayerId, int localPlayerId);};

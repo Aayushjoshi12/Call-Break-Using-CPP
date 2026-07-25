@@ -40,6 +40,7 @@ void scoreHand(Player *players[4], float scores[5][4], int handsPlayed)
         players[i]->tricksWon = 0;
         players[i]->bid = 0;
         players[i]->handSize = 0;
+        players[i]->networkCardChoice = -1;
     }
 }
 
@@ -68,6 +69,8 @@ int main()
     // Bidding state for the current hand.
     bool bidSubmitted[4] = {false, false, false, false};
     int bidsIn = 0;
+    chrono::steady_clock::time_point biddingStartTime = chrono::steady_clock::now();
+    const double BIDDING_TIMEOUT_SECONDS = 4.0;
 
     // Authoritative server-side turn timer.  This prevents the entire game
     // from freezing if a client does not click, loses focus, or disconnects
@@ -209,6 +212,13 @@ int main()
                 }
             }
         }
+        else if (state == PLAYING)
+        {
+            // Advance the shared turn timer for every client immediately after
+            // a successful card play so the next player is prompted without
+            // waiting for a separate round-end event.
+            broadcastTurnStarted();
+        }
 
         return true;
     };
@@ -239,6 +249,8 @@ int main()
 
                 for (int i = 0; i < 4; i++)
                 {
+                    players[i]->handSize = 0;
+                    players[i]->networkCardChoice = -1;
                     for (int j = 0; j < 13; j++)
                         players[i]->receiveCard(deck.cardAt(i * 13 + j));
 
@@ -264,6 +276,7 @@ int main()
 
                 isdeckcreated = true;
                 state = WAITING_BIDS;
+                biddingStartTime = chrono::steady_clock::now();
                 cout << "Cards dealt. Waiting for all bids." << endl;
             }
             break;
@@ -303,6 +316,22 @@ int main()
                 }
             }
 
+            double biddingElapsed = chrono::duration<double>(chrono::steady_clock::now() - biddingStartTime).count();
+            if (bidsIn < 4 && biddingElapsed >= BIDDING_TIMEOUT_SECONDS)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    if (players[i] && !bidSubmitted[i])
+                    {
+                        int fallbackBid = max(1, min(players[i]->handSize, players[i]->chooseBid()));
+                        players[i]->bid = fallbackBid;
+                        bidSubmitted[i] = true;
+                        bidsIn++;
+                        cout << "[AUTO-BID] Player " << players[i]->player_id << " -> " << fallbackBid << endl;
+                    }
+                }
+            }
+
             if (bidsIn == 4)
             {
                 roundManager.startRound(1, players);
@@ -328,29 +357,36 @@ int main()
 
             if (elapsed >= TURN_TIME)
             {
-                Player *current = players[roundManager.currentPlayer];
-                int forcedIndex = -1;
-
-                for (int i = 0; i < current->handSize; i++)
+                if (roundManager.currentPlayer < 0 || roundManager.currentPlayer >= 4 || players[roundManager.currentPlayer] == nullptr)
                 {
-                    if (roundManager.isValidMove(current, i))
-                    {
-                        forcedIndex = i;
-                        break;
-                    }
-                }
-
-                if (forcedIndex != -1)
-                {
-                    int forcedCard = current->hand[forcedIndex].index;
-                    processPlay(current->player_id, forcedCard, true);
+                    turnStartTime = chrono::steady_clock::now();
                 }
                 else
                 {
-                    // A valid hand should always have at least one legal
-                    // card. Resetting the clock is safer than a tight loop if
-                    // the server receives corrupted state.
-                    turnStartTime = chrono::steady_clock::now();
+                    Player *current = players[roundManager.currentPlayer];
+                    int forcedIndex = -1;
+
+                    for (int i = 0; i < current->handSize; i++)
+                    {
+                        if (roundManager.isValidMove(current, i))
+                        {
+                            forcedIndex = i;
+                            break;
+                        }
+                    }
+
+                    if (forcedIndex != -1)
+                    {
+                        int forcedCard = current->hand[forcedIndex].index;
+                        processPlay(current->player_id, forcedCard, true);
+                    }
+                    else
+                    {
+                        // A valid hand should always have at least one legal
+                        // card. Resetting the clock is safer than a tight loop if
+                        // the server receives corrupted state.
+                        turnStartTime = chrono::steady_clock::now();
+                    }
                 }
             }
 
