@@ -27,6 +27,8 @@ bool RoundManager::updateRound(Player *players[4])
         return false;
 
     Player *current = players[currentPlayer];
+    if (current == nullptr || current->handSize <= 0)
+        return false;
 
     // isaifirstmove is only true for the trick leader if they are AI
     // update it per-move so mid-trick bots get correct info
@@ -34,7 +36,7 @@ bool RoundManager::updateRound(Player *players[4])
     bool isAILeading = isLeading && (currentPlayer != 0);
 
     int card_index = current->getCardIndex(leadsuit, currentBest, isAILeading);
-    if (card_index == -1)
+    if (card_index < 0 || card_index >= current->handSize)
         return false;
 
     if (!isValidMove(current, card_index))
@@ -90,6 +92,9 @@ bool RoundManager::updateRound(Player *players[4])
 }
 bool RoundManager::isValidMove(Player *p, int cardIndex)
 {
+    if (p == nullptr || cardIndex < 0 || cardIndex >= p->handSize)
+        return false;
+
     if (leadsuit.empty())
         return true;
 

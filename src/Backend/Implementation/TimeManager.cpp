@@ -1,15 +1,15 @@
 
 #include <iostream>
 #include"../headerfiles/TimeManager.h"
-void TimeManager::update()
+void TimeManager::update(float deltaTime)
 {
-    currentTime -= GetFrameTime();
+    currentTime -= deltaTime;
     if (currentTime <= 0)
     {
         currentTime = 0;
     }
 }
-
+ 
 void TimeManager::reset()
 {
     currentTime = totalTime;

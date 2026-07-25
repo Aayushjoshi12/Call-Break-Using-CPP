@@ -22,7 +22,7 @@ public:
     const float ROUND_END_DELAY = 2.0f;
     bool waitingForNextRound = false;
 
-    void updateGame(Player* players[4]);
+    void updateGame(Player *players[4], float deltaTime);
     void calculateScores(Player* players[4]);
     float scores[5][4];
 };

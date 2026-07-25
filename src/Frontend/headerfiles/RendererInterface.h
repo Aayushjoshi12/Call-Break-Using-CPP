@@ -10,7 +10,7 @@ class Renderer
 private:
     Texture2D cardBack;
     Texture2D table;
-    Texture2D cards[13];
+    Texture2D cardTextures[52];
     Texture2D background;
     Font font;
     Font boldFont;
@@ -22,7 +22,6 @@ public:
     ~Renderer();
     void drawCardBack(float x, float y);
     void drawTable(int x, int y);
-    void drawCard(int index, int x, int y);
     void drawClock(float currentTime, float totalTime, int x, int y, int radius);
     void drawBackground();
     void drawWholeInterface(Card *hand, int count,int round);

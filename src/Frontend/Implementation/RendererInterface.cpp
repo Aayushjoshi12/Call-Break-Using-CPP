@@ -11,12 +11,15 @@ Renderer::Renderer()
     boldFont = LoadFontEx("../Assets/fonts/Cinzel-Bold.ttf", 96, 0, 0);
     goldColor = {255, 215, 0, 255};
     mute = LoadTexture("../Assets/Image files/mute.png");
-
-    for (int i = 0; i < 13; i++)
-    {
-        string path = "../Assets/Image files/cards/" + to_string(i + 2) + "_of_clubs.png";
-        cards[i] = LoadTexture(path.c_str());
-    }
+   
+    string suits[4] = {"spades","clubs","hearts","diamonds"};
+for (int i = 1; i <= 52; i++) {
+    int suit_index = (i - 1) / 13;
+    int value      = (i - 1) % 13 + 2;
+    string path = "../Assets/Image files/cards/" + to_string(value) + "_of_" + suits[suit_index] + ".png";
+    cardTextures[i - 1] = LoadTexture(path.c_str());
+}
+   
 }
 
 void Renderer::drawCardBack(float x, float y)
@@ -29,12 +32,6 @@ void Renderer::drawTable(int x, int y)
 {
     float scale = 800.0f / table.width;
     DrawTextureEx(table, {x - 400.0f, y - (table.height * scale) / 2}, 0.0f, scale, WHITE);
-}
-
-void Renderer::drawCard(int index, int x, int y)
-{
-    float scale = 50.0f / cards[index].width;
-    DrawTextureEx(cards[index], {x - 25.0f, y - (cards[index].height * scale) / 2}, 0.0f, scale, WHITE);
 }
 
 void Renderer::drawBackground()
@@ -54,7 +51,13 @@ void Renderer::drawMute(float x, float y)
 
 void Renderer::drawClock(float currentTime, float totalTime, int x, int y, int radius)
 {
+    if (totalTime <= 0.0f)
+        return;
+
     float fraction = currentTime / totalTime;
+    if (fraction < 0.0f) fraction = 0.0f;
+    if (fraction > 1.0f) fraction = 1.0f;
+
     float startAngle = -90.0f;
     float endAngle = -90.0f + (360.0f * fraction);
 
@@ -84,10 +87,16 @@ void Renderer::drawPlayedCards(vector<Move>& moves, int x, int y)
     {
         int pid = moves[i].player_id;
         int slot = pid - 1;  // player_id is 1-based
+        if (slot < 0 || slot >= 4)
+            continue;
+
         Card& c = moves[i].cardPlayed;
-        float scale = 70.0f / c.texture.width;
+        if (c.index < 1 || c.index > 52 || cardTextures[c.index - 1].width <= 0)
+            continue;
+
+        float scale = 70.0f / cardTextures[c.index - 1].width;
         Vector2 pos = { offsets[slot][0], offsets[slot][1] };
-        DrawTextureEx(c.texture, pos, 0.0f, scale, WHITE);
+        DrawTextureEx(cardTextures[c.index - 1], pos, 0.0f, scale, WHITE);
     }
 }
 
@@ -119,11 +128,11 @@ void Renderer::drawWholeInterface(Card *hand, int count, Rectangle *rects,vector
     {
         float x = 240.0f + (i * 60.0f);
         float y = 800.0f - 100;
-        float scale = 50.0f / hand[i].texture.width;
-        float w = hand[i].texture.width * scale;
-        float h = hand[i].texture.height * scale;
+        float scale = 50.0f / cardTextures[hand[i].index - 1].width;
+        float w = cardTextures[hand[i].index - 1].width * scale;
+        float h = cardTextures[hand[i].index - 1].height * scale;
 
-        DrawTextureEx(hand[i].texture,
+        DrawTextureEx(cardTextures[hand[i].index - 1],
                       {x - 25.0f, y - h / 2.0f},
                       0.0f, scale, WHITE);
 
@@ -168,9 +177,9 @@ void Renderer::drawWholeInterface(Card *hand, int count,int round)
     {
         float x = 240.0f + (i * 60.0f);
         float y = 800.0f - 100;
-        float scale = 50.0f / hand[i].texture.width;
-        DrawTextureEx(hand[i].texture,
-                      {x - 25.0f, y - (hand[i].texture.height * scale) / 2.0f},
+        float scale = 50.0f / cardTextures[hand[i].index - 1].width;
+        DrawTextureEx(cardTextures[hand[i].index - 1],
+                      {x - 25.0f, y - (cardTextures[hand[i].index - 1].height * scale) / 2.0f},
                       0.0f, scale, WHITE);
     }
 
@@ -189,9 +198,9 @@ Renderer::~Renderer()
     UnloadTexture(table);
     UnloadTexture(background);
     UnloadTexture(mute);
-    for (int i = 0; i < 13; i++)
+    for (int i = 0; i < 52; i++)
     {
-        UnloadTexture(cards[i]);
+        UnloadTexture(cardTextures[i]);
     }
     UnloadFont(font);
     UnloadFont(boldFont);
