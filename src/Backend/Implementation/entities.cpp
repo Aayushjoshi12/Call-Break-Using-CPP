@@ -5,7 +5,7 @@
 #include <iostream>
 using namespace std;
 Card::Card() : suit("spades"), value(0), index(0) {
-    texture = {0};
+  
 }
 
 
@@ -14,10 +14,6 @@ void Card::load(int cardNum) {
     value = (cardNum - 1) % 13 + 2;
     string suits_array[4]={"spades", "clubs", "hearts", "diamonds"};
     suit=suits_array[suit_index];
-
-    string name = to_string(value) + "_of_" + suit + ".png";
-
-    texture = LoadTexture(("../Assets/Image files/cards/" + name).c_str());
     index = cardNum;
 }
 void Player::receiveCard(int cardNum)
@@ -28,16 +24,21 @@ void Player::receiveCard(int cardNum)
         handSize++;
     }
 }
-void Card::unload() {
-    if (texture.id > 0)
-        UnloadTexture(texture);
-}
 
 
 
 // ───────── DECK ─────────
 Deck::Deck() {
-    srand((unsigned)time(0));
+    // FIX: this used to call srand(time(0)) on every Deck construction.
+    // A new hand can be dealt more than once per second (e.g. on "hand
+    // over"), so re-seeding with the same time(0) value produced the exact
+    // same shuffle back-to-back. Seed once, globally, instead.
+    static bool seeded = false;
+    if (!seeded)
+    {
+        srand((unsigned)time(0));
+        seeded = true;
+    }
     for (int i = 0; i < 52; i++)
         raw[i] = i + 1;
 }
@@ -63,17 +64,28 @@ void Player::organizeHand()
     }
   }
 }// ───────── PLAYER ─────────
-Player::Player(bool ishuman) {
+Player::Player(bool ishuman,bool isnetworked) {
     handSize = 0;
     bid = tricksWon = score = 0;
     isHuman = ishuman;
+    this->isnetworked = isnetworked;
+    networkCardChoice = -1;
 }
 int Player::getCardIndex(string leadSuit, int currentBest, bool isAIFirstMove) {
+    // A network/server timeout can inject a card index here.  This is
+    // intentionally checked before the local mouse input so the same
+    // Player class can be used by the offline game and the server.
+    if (networkCardChoice != -1) {
+        int choice = networkCardChoice;
+        networkCardChoice = -1;
+        return choice;
+    }
+
     if (isHuman) {
         Vector2 mouse = GetMousePosition();
+        bool clicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || IsMouseButtonReleased(MOUSE_LEFT_BUTTON);
         for (int i = 0; i < handSize; i++) {
-            if (CheckCollisionPointRec(mouse, rects[i]) &&
-                IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            if (CheckCollisionPointRec(mouse, rects[i]) && clicked) {
                 return i;
             }
         }
@@ -81,8 +93,6 @@ int Player::getCardIndex(string leadSuit, int currentBest, bool isAIFirstMove) {
     } else {
         if(isAIFirstMove){
             return 0;
-            isAIFirstMove=false;
-
         }
         else{
 

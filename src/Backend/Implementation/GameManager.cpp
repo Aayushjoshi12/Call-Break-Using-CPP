@@ -14,7 +14,7 @@ void GameManager::updateGame(Player *players[4])
     // ── waiting between tricks ──
     if (waitingForNextRound)
     {
-        roundEndDelay -= GetFrameTime();
+        roundEndDelay -= deltaTime;
         if (roundEndDelay <= 0)
         {
             waitingForNextRound = false;
@@ -49,16 +49,39 @@ void GameManager::updateGame(Player *players[4])
     if (roundManager.currentPlayer == 0)
     {
         // ── human turn: only act on mouse click, not every frame ──
-        timeManager.update();
+        timeManager.update(deltaTime);
         if (timeManager.currentTime <= 0)
         {
-            // time expired — force AI to pick for the human (play card 0)
-            roundManager.updateRound(players);
-            timeManager.reset();
+            // Timeout must choose a LEGAL card.  Playing index 0 blindly can
+            // violate the follow-suit rule and leave the round stuck forever.
+            Player *human = players[roundManager.currentPlayer];
+            int forcedIndex = -1;
+
+            for (int i = 0; i < human->handSize; ++i)
+            {
+                if (roundManager.isValidMove(human, i))
+                {
+                    forcedIndex = i;
+                    break;
+                }
+            }
+
+            if (forcedIndex != -1)
+            {
+                human->networkCardChoice = forcedIndex;
+                if (roundManager.updateRound(players))
+                    timeManager.reset();
+            }
+            else
+            {
+                // This should only be reachable with a corrupted/empty hand.
+                // Give the game another frame instead of spinning at zero.
+                timeManager.reset();
+            }
         }
         else
         {
-            // wait for actual mouse click inside getCardIndex
+            // Wait for actual mouse click inside getCardIndex.
             bool played = roundManager.updateRound(players);
             if (played)
                 timeManager.reset();
@@ -67,7 +90,7 @@ void GameManager::updateGame(Player *players[4])
     else
     {
         // ── bot turn ──
-        botDelay -= GetFrameTime();
+        botDelay -= deltaTime;
         if (botDelay <= 0)
         {
             bool played = roundManager.updateRound(players);
@@ -115,9 +138,6 @@ void GameManager::calculateScores(Player *players[4])
  for (int i = 0; i < 4; i++) {
     players[i]->tricksWon = 0;
     players[i]->bid = 0;
-    for (int j = 0; j < players[i]->handSize; j++) {
-        players[i]->hand[j].unload();
-    }
     players[i]->handSize = 0;
 }
 }

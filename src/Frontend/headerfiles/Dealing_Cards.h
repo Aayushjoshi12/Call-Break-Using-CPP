@@ -19,7 +19,6 @@ class DealAnimation
 {
 public:
     DealAnimation();
-
     void start(const Card* hand, int count);
     void update(float dt);
     void draw(Renderer& r);
@@ -28,6 +27,7 @@ public:
 
 private:
     vector<AnimatedCard> animCards;
+    Texture2D cardTextures[52];
     int   currentCard;
     float dealDelay;
     float dealInterval;

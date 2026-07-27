@@ -22,7 +22,10 @@ public:
     const float ROUND_END_DELAY = 2.0f;
     bool waitingForNextRound = false;
 
-    void updateGame(Player* players[4]);
+    void updateGame(Player *players[4], float deltaTime);
     void calculateScores(Player* players[4]);
-    float scores[5][4];
+    // Was declared with no initializer — since GameManager is a stack object,
+    // any hand not yet played held raw garbage memory, which is exactly the
+    // huge scrambled digits shown on the result screen.
+    float scores[5][4] = {};
 };

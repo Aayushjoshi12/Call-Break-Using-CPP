@@ -157,7 +157,12 @@ void BidScreen::Draw()
         2,
         btnText);
 
-    if (enabled && hovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+    if (enabled && hovered &&
+        (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || IsMouseButtonReleased(MOUSE_LEFT_BUTTON)))
+    {
+        confirmed = true;
+    }
+    else if (enabled && (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)))
     {
         confirmed = true;
     }
@@ -166,4 +171,10 @@ void BidScreen::Draw()
 int BidScreen::GetSelectedBid()
 {
     return selectedBid;
+}
+
+void BidScreen::Reset()
+{
+    selectedBid = 0;
+    confirmed = false;
 }
