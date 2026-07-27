@@ -11,8 +11,8 @@ public:
     Texture2D img_machine_load;
     Texture2D img_human_load;
 
-    void load();
-    void unload();
+    Home_UI();
+    ~Home_UI();
 
     void Background();
     void img_machines(Rectangle Img_bot_machine_position);

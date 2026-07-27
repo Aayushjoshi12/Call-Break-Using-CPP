@@ -1,5 +1,6 @@
 #pragma once
 #include"RendererInterface.h"
+#include<vector>
 #include "../../Backend/headerfiles/entities.h"
 // ─── AnimatedCard ─────────────────────────────────────────────────────────────
 struct AnimatedCard

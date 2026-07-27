@@ -26,7 +26,6 @@ bool Server::init(int port, int maxPlayers)
 void Server::poll(Player *players[4])
 {
     ENetEvent event;
-    lastDisconnectObserved = false;
 
     while (enet_host_service(host, &event, 0) > 0)
     {
@@ -55,13 +54,7 @@ void Server::poll(Player *players[4])
             players_connected++;
             std::cout << "[INFO] Client connected with ID: " << (int)(intptr_t)event.peer->data << std::endl;
             peers[players_connected - 1] = event.peer;
-            players[players_connected - 1] = new Player(true, true); // isHuman=true, isnetworked=true
-            players[players_connected - 1]->player_id = (int)(intptr_t)event.peer->data;
-
-            // FIX: match the client's loosened timeout so a real player's
-            // connection isn't dropped during normal idle gaps between turns
-            // or while the game is waiting on another player.
-            enet_peer_timeout(event.peer, 32, 600000, 1800000);
+            players[players_connected - 1] = new Player(players_connected);
 
             broadcast({{"method", "updateLobby"},
                        {"params", {{"playersConnected", players_connected}}}});
@@ -81,54 +74,19 @@ void Server::poll(Player *players[4])
 
             std::cout << "[INFO] Client disconnected with ID: " << disconnected_id << std::endl;
 
-            // FIX: find which slot this peer actually occupies in peers[]/
-            // players[] and compact both arrays. The old code decremented
-            // player_id fields but never touched peers[]/players[], so
-            // server_main.cpp's server.peers[i] / players[i] lookups went
-            // stale (and the Player was leaked) after any disconnect.
-            int slot = -1;
-            for (int i = 0; i < players_connected; i++)
+            for (int i = 0; i < 4; i++)
             {
-                if (peers[i] == event.peer)
+                if (players[i] != nullptr && players[i]->player_id > disconnected_id)
                 {
-                    slot = i;
-                    break;
+                    players[i]->player_id--;
                 }
             }
-
-            if (slot != -1)
-            {
-                delete players[slot];
-                for (int i = slot; i < players_connected - 1; i++)
-                {
-                    peers[i] = peers[i + 1];
-                    players[i] = players[i + 1];
-                }
-                peers[players_connected - 1] = nullptr;
-                players[players_connected - 1] = nullptr;
-            }
-
             players_connected--;
-            lastDisconnectObserved = true;
             break;
         }
         case ENET_EVENT_TYPE_RECEIVE:
         {
-            int senderId = (int)(intptr_t)event.peer->data;
-            std::cout << "[INFO] Message received from client with ID: " << senderId << std::endl;
-            try
-            {
-                json msg = json::parse((char *)event.packet->data,
-                                        (char *)event.packet->data + event.packet->dataLength);
-                incomingMessages.push({senderId, msg});
-            }
-            catch (const std::exception &e)
-            {
-                std::cerr << "[ERROR] Failed to parse packet from client " << senderId
-                          << ": " << e.what() << " raw="
-                          << std::string((char *)event.packet->data, event.packet->dataLength)
-                          << std::endl;
-            }
+            std::cout << "[INFO] Message received from client with ID: " << (int)(intptr_t)event.peer->data << std::endl;
             enet_packet_destroy(event.packet);
             break;
         }
@@ -140,8 +98,6 @@ void Server::poll(Player *players[4])
 
 void Server::sendTo(ENetPeer *peer, const json &j)
 {
-    if (!peer)
-        return;
     std::string msg = j.dump();
     ENetPacket *packet = enet_packet_create(msg.c_str(), msg.size(), ENET_PACKET_FLAG_RELIABLE);
     enet_peer_send(peer, 0, packet);
@@ -149,8 +105,6 @@ void Server::sendTo(ENetPeer *peer, const json &j)
 
 void Server::broadcast(const json &j)
 {
-    if (!host)
-        return;
     std::string msg = j.dump();
     ENetPacket *packet = enet_packet_create(msg.c_str(), msg.size(), ENET_PACKET_FLAG_RELIABLE);
     enet_host_broadcast(host, 0, packet);

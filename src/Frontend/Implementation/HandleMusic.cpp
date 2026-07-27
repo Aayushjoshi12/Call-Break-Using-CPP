@@ -1,13 +1,14 @@
 #include "../headerfiles/HandleMusic.h"
+#include"../text.h"
 
 static Rectangle Mute_Button = { (float)1100.0, (float)70.0, (float)45.0, (float)45.0 };
 
 HandleMusic::HandleMusic()
     : m_music({}), m_muteBtn({}), m_unmuteBtn({}), m_isMuted(false)
 {
-    m_music     = LoadMusicStream("../Assets/Music/casino.mp3");
-    m_muteBtn   = LoadTexture("../Assets/Image files/mute.png");
-    m_unmuteBtn = LoadTexture("../Assets/Image files/unmute.png");
+    m_music     = LoadMusicStream(MUSIC_CASINO);
+    m_muteBtn   = LoadTexture(IMG_MUTE);
+    m_unmuteBtn = LoadTexture(IMG_UNMUTE);
     PlayMusicStream(m_music);
 }
 
