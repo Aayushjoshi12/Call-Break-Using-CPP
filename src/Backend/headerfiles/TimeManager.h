@@ -1,5 +1,6 @@
 #pragma once
 #include "entities.h"
+#include <iostream>
 #include <vector>
 #include <string>
 class TimeManager
@@ -8,6 +9,6 @@ public:
     const float totalTime = 60.0f;
     float currentTime = 60.0f;
 
-    void update();
+    void update(float deltaTime);
     void reset();
 };

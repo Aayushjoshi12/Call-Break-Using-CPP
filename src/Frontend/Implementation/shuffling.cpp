@@ -17,6 +17,7 @@ CardShuffle::CardShuffle()
       m_done(false)
 {
     srand((unsigned)time(nullptr));
+  
 }
 
 CardShuffle::~CardShuffle() {}
@@ -413,6 +414,11 @@ void CardShuffle::DrawUI() {
 
     DrawTextEx(m_font, displayText, { tx + 2.f, ty + 2.f }, fontSize, spacing, { 0, 0, 0, 140 });
     DrawTextEx(m_font, displayText, { tx, ty }, fontSize, spacing, { 255, 215, 0, 255 });
+
+    Rectangle skipRect = GetSkipButtonRect();
+    DrawRectangleRounded(skipRect, 0.24f, 10, { 24, 24, 24, 220 });
+    DrawRectangleRoundedLines(skipRect, 0.24f, 10, { 255, 215, 0, 255 });
+    DrawTextEx(m_font,"Skip", {(float)(skipRect.x + 34), (float)(skipRect.y + 10)}, 24,2,GOLD);
 }
 
 void CardShuffle::LoadCardTexture(const char* imagePath) {
@@ -541,6 +547,33 @@ void CardShuffle::Run(const char* imagePath) {
 bool CardShuffle::isDone() const {
     return m_done;
 }
+
+Rectangle CardShuffle::GetSkipButtonRect() const {
+    return { SW - 215.f, SH - 90.f, 120.f, 42.f };
+}
+
+bool CardShuffle::IsSkipButtonPressed() const {
+    Rectangle skipRect = GetSkipButtonRect();
+    return IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), skipRect);
+}
+
+void CardShuffle::Skip() {
+    if (m_done)
+        return;
+
+    m_done = true;
+    m_phase = Phase::SQUARE;
+    m_time = m_duration;
+    m_setupDone = true;
+
+    for (auto& c : m_cards) {
+        c.pos = c.posB;
+        c.rot = c.rotB;
+        c.scale = c.scaleB;
+        c.landed = true;
+    }
+}
+
 void CardShuffle::Reset() {
     m_cards.resize(NUM_CARDS);
     StackAllCards();

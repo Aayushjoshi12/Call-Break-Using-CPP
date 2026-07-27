@@ -62,14 +62,19 @@ public:
     void Run(const char* imagePath);
     bool isDone() const;
     void Reset();
+    void Skip();
+    bool IsSkipButtonPressed() const;
+    Rectangle GetSkipButtonRect() const;
 
 private:
     // ── Card data ──
     std::vector<ShuffleCard> m_cards;
     std::vector<int>         m_dropOrder;
+     Font font;
 
     // ── Phase state ──
     Phase       m_phase;
+   
     float       m_time;
     float       m_globalTime;
     float       m_duration;

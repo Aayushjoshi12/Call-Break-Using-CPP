@@ -9,29 +9,21 @@ public:
     std::string suit;
     int value;
     int suit_index;
-    Texture2D texture;
     int index;
-   
-
     Card();
-
     void load(int cardNum);
-    void unload();
 
 };
 
 class Deck {
 public:
     int raw[52];
-
     Deck();
-
     void shuffle();
     int cardAt(int i);
 };
 class Player {
 public:
-   
     std::string name;
     int player_id;
     Card hand[13];
@@ -39,7 +31,7 @@ public:
     bool isHuman;
     Rectangle rects[13];
     Player();
-    Player(bool ishuman);   
+    Player(bool ishuman,bool isnetworked=false);   
     int getCardIndex(std::string leadSuit, int currentBest,bool isAIFirstMove);
     void organizeHand();  
     void receiveCard(int cardNum);
@@ -47,6 +39,8 @@ public:
     void getPlayedCard();
     int chooseBid();
     Card playCard(int index);
+    bool isnetworked=false;
+    int networkCardChoice = -1;  
     int bid;
     int tricksWon;
     float score;
