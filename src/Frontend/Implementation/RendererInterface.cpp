@@ -74,13 +74,13 @@ void Renderer::drawClock(float currentTime, float totalTime, int x, int y, int r
 void Renderer::drawPlayedCards(vector<Move>& moves, int x, int y)
 {
     // Center positions for each player's played card, relative to table center (x, y)
-    // Player 0 = bottom, 1 = top, 2 = left, 3 = right
+    // Player 0 = bottom, 1 = left, 2 = top, 3 = right (clockwise order)
     float cx = (float)x, cy = (float)y;
     float offsets[4][2] = {
         { cx - 35,  cy + 80  },   // player 0 (You) - bottom center
-        { cx - 35,  cy - 130 },   // player 1 (Bot1) - top center
-        { cx - 150, cy - 25  },   // player 2 (Bot2) - left center
-        { cx + 80,  cy - 25  }    // player 3 (Bot3) - right center
+        { cx - 150, cy - 25  },   // player 1 (Bot 1) - left center
+        { cx - 35,  cy - 130 },   // player 2 (Bot 2) - top center
+        { cx + 80,  cy - 25  }    // player 3 (Bot 3) - right center
     };
 
     for (int i = 0; i < (int)moves.size(); i++)
@@ -102,7 +102,7 @@ void Renderer::drawPlayedCards(vector<Move>& moves, int x, int y)
 
 void Renderer::drawWholeInterface(Card *hand, int count, Rectangle *rects,vector<Move> moves,float time,int round)
 {
-    std::string labels[4] = {"You", "Player 2", "Player 3", "Player 4"};
+    std::string labels[4] = {"You", "Bot 1", "Bot 2", "Bot 3"};
     drawWholeInterface(hand, count, rects, moves, time, round, labels, -1, -1);
 }
 
@@ -112,6 +112,13 @@ void Renderer::drawWholeInterface(Card *hand, int count, Rectangle *rects,vector
 }
 
 void Renderer::drawWholeInterface(Card *hand, int count, Rectangle *rects,vector<Move> moves,float time,int round, const std::string (&labels)[4], int currentTurnPlayerId, int localPlayerId)
+{
+    int zeroBids[4] = {0, 0, 0, 0};
+    int zeroTricks[4] = {0, 0, 0, 0};
+    drawWholeInterface(hand, count, rects, moves, time, round, labels, currentTurnPlayerId, localPlayerId, zeroBids, zeroTricks);
+}
+
+void Renderer::drawWholeInterface(Card *hand, int count, Rectangle *rects,vector<Move> moves,float time,int round, const std::string (&labels)[4], int currentTurnPlayerId, int localPlayerId, const int (&bids)[4], const int (&tricksWon)[4])
 {
     string roundLabel = "Round " + std::to_string(round);
     drawBackground();
@@ -124,23 +131,38 @@ void Renderer::drawWholeInterface(Card *hand, int count, Rectangle *rects,vector
             label = (localPlayerId > 0 && currentTurnPlayerId == localPlayerId) ? "Your Turn" : "Turn";
         Color color = isActiveSeat ? GOLD : WHITE;
         Vector2 size = MeasureTextEx(font, label.c_str(), 36, 2);
-        DrawTextEx(font, label.c_str(), {x - size.x / 2, y}, 36, 2, color);
+        if(label=="Your Turn")
+        {
+            DrawTextEx(font, label.c_str(), {600-size.x/2, 600}, 36, 2, color);
+        }
+        else
+        {
+            DrawTextEx(font, label.c_str(), {x - size.x / 2, y}, 36, 2, color);
+        }
+        
+
+        // Live bid / tricks-won readout for this seat
+        std::string info = (bids[slot] > 0)
+            ? TextFormat("Bid %d  |  Won %d", bids[slot], tricksWon[slot])
+            : TextFormat("Won %d", tricksWon[slot]);
+        Vector2 infoSize = MeasureTextEx(font, info.c_str(), 20, 1);
+        DrawTextEx(font, info.c_str(), {x - infoSize.x / 2, y + 34}, 20, 1, goldColor);
     };
 
-    // Top seat
-    drawCardBack(600.0, 100.0);
-    drawSeatLabel(1, 600.0f, 100.0f + 108.72f - 10, labels[1]);
-
-    // Left seat
+    // Left seat (Bot 1)
     drawCardBack(200.0, 400.0);
-    drawSeatLabel(2, 200.0f, 400.0f + 108.72f - 10, labels[2]);
+    drawSeatLabel(1, 200.0f, 400.0f + 108.72f - 10, labels[1]);
 
-    // Right seat
+    // Top seat (Bot 2)
+    drawCardBack(600.0, 100.0);
+    drawSeatLabel(2, 600.0f, 55.0f + 108.72f - 10, labels[2]);
+
+    // Right seat (Bot 3)
     drawCardBack(1000.0, 400.0);
     drawSeatLabel(3, 1000.0f, 400.0f + 108.72f - 10, labels[3]);
 
     // Bottom seat (local player)
-    drawSeatLabel(0, 600.0f, 720.0f, labels[0]);
+    drawSeatLabel(0, 600.0f, 747.0f, labels[0]);
 
     drawTable(600, 430);
 
@@ -172,7 +194,7 @@ void Renderer::drawWholeInterface(Card *hand, int count, Rectangle *rects,vector
 }
 void Renderer::drawWholeInterface(Card *hand, int count,int round)
 {
-    std::string labels[4] = {"You", "Player 2", "Player 3", "Player 4"};
+    std::string labels[4] = {"You", "Bot 1", "Bot 2", "Bot 3"};
     drawWholeInterface(hand, count, round, labels, -1, -1);
 }
 
@@ -194,23 +216,31 @@ void Renderer::drawWholeInterface(Card *hand, int count,int round, const std::st
             label = (localPlayerId > 0 && currentTurnPlayerId == localPlayerId) ? "Your Turn" : "Turn";
         Color color = isActiveSeat ? GOLD : WHITE;
         Vector2 size = MeasureTextEx(font, label.c_str(), 36, 2);
-        DrawTextEx(font, label.c_str(), {x - size.x / 2, y}, 36, 2, color);
+          if(label=="Your Turn")
+        {
+            DrawTextEx(font, label.c_str(), {600-size.x/2, 600}, 36, 2, color);
+        }
+        else
+        {
+            DrawTextEx(font, label.c_str(), {x - size.x / 2, y}, 36, 2, color);
+        }
+        
     };
 
-    // Top seat
-    drawCardBack(600.0, 100.0);
-    drawSeatLabel(1, 600.0f, 100.0f + 108.72f - 10, labels[1]);
-
-    // Left seat
+    // Left seat (Bot 1)
     drawCardBack(200.0, 400.0);
-    drawSeatLabel(2, 200.0f, 400.0f + 108.72f - 10, labels[2]);
+    drawSeatLabel(1, 200.0f, 400.0f + 108.72f - 10, labels[1]);
 
-    // Right seat
+    // Top seat (Bot 2)
+    drawCardBack(600.0, 100.0);
+    drawSeatLabel(2, 600.0f, 55.0f + 108.72f - 10, labels[2]);
+
+    // Right seat (Bot 3)
     drawCardBack(1000.0, 400.0);
     drawSeatLabel(3, 1000.0f, 400.0f + 108.72f - 10, labels[3]);
 
     // Bottom seat (local player)
-    drawSeatLabel(0, 600.0f, 720.0f, labels[0]);
+    drawSeatLabel(0, 600.0f, 747.0f, labels[0]);
 
     drawTable(600, 430);
 

@@ -17,6 +17,10 @@ public:
 
     void Update();
     void Draw();
+    // NEW: selectedBid was never cleared between hands, so a leftover
+    // selection (plus the CONFIRM button sitting at the same fixed screen
+    // position every hand) let bidding get skipped almost instantly.
+    void Reset();
 
     int GetSelectedBid();
 };

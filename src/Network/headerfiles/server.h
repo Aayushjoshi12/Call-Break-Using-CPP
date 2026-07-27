@@ -15,6 +15,7 @@ class Server
 public:
     int player_id = 1;
     int players_connected = 0;
+    bool lastDisconnectObserved = false;
     bool init(int port, int maxPlayers); // Initializes the server on the specified port with a maximum number of players
     void poll(Player *players[4]);       // Polls for incoming events and handles them
     void shutdown();

@@ -30,4 +30,7 @@ public:
     void drawWholeInterface(Card* hand, int count,Rectangle* rects,vector<Move> moves,float time,int round);
     void drawWholeInterface(Card* hand, int count, int round, const std::string (&labels)[4]);
     void drawWholeInterface(Card* hand, int count, Rectangle* rects, vector<Move> moves, float time, int round, const std::string (&labels)[4]);    void drawWholeInterface(Card* hand, int count, int round, const std::string (&labels)[4], int currentTurnPlayerId, int localPlayerId);
-    void drawWholeInterface(Card* hand, int count, Rectangle* rects, vector<Move> moves, float time, int round, const std::string (&labels)[4], int currentTurnPlayerId, int localPlayerId);};
+    void drawWholeInterface(Card* hand, int count, Rectangle* rects, vector<Move> moves, float time, int round, const std::string (&labels)[4], int currentTurnPlayerId, int localPlayerId);
+    // NEW: also shows each seat's current bid and tricks won, live, during play
+    void drawWholeInterface(Card* hand, int count, Rectangle* rects, vector<Move> moves, float time, int round, const std::string (&labels)[4], int currentTurnPlayerId, int localPlayerId, const int (&bids)[4], const int (&tricksWon)[4]);
+};

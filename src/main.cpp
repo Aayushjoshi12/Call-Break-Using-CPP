@@ -50,7 +50,10 @@ int main()
 {
     InitWindow(screenwidth, screenheight, "Call Break");
     bool lobbyFullMessage = false;
+
+    std::string homeStatusMessage = "";
     InitAudioDevice();
+    Font font = LoadFontEx("../Assets/Fonts/Cinzel_Font.ttf", 96, 0, 0);
 
     Home_UI HOME;
     HOME.load();
@@ -73,6 +76,14 @@ int main()
     bool dealtcards = false;
     bool dealStarted = false;
     bool bidchosen = false;
+    // NEW: the bid screen was disappearing almost instantly because
+    // selectedBid persisted from the previous hand. This enforces a real
+    // decision window: at least BID_SCREEN_MIN_TIME must pass before any
+    // confirm is accepted (guards against stale state), and the player
+    // gets up to BID_SCREEN_TIMEOUT seconds before a bid is auto-picked.
+    float bidScreenTimer = 0.0f;
+    const float BID_SCREEN_MIN_TIME = 0.5f;
+    const float BID_SCREEN_TIMEOUT = 40.0f;
 
     // ── human-mode networking state ──
     bool cardsReceived = false;
@@ -91,21 +102,28 @@ int main()
     std::vector<Move> humanMoves;
     int humanHandsPlayed = 0;
 
-    // NEW: has this client sent its bid to the server for the current hand?
+    
+    int seatBids[4] = {0, 0, 0, 0};
+    int seatTricks[4] = {0, 0, 0, 0};
+
+    float humanScoresGrid[5][4] = {};
+    bool matchOverPendingHome = false;
+
     bool bidSubmitted = false;
     bool bidAutoSubmitted = false;
+    bool biddingCompleteReceived = false;
     float bidAutoTimer = 0.0f;
-    const float BID_AUTO_SUBMIT_DELAY = 3.0f;
 
-    // NEW: trickWon no longer clears humanMoves synchronously (that was
-    // wiping the trick-winning card before it was ever drawn, since
-    // "cardPlayed" + "trickWon" frequently arrive in the same poll batch).
-    // Instead we keep the finished trick on screen for a short delay,
-    // and only actually clear it once that delay expires OR the next
-    // trick's first card shows up (whichever happens first).
+    const float BID_AUTO_SUBMIT_DELAY = 180.0f;
+
+ 
     bool humanTrickEndPending = false;
     float humanTrickEndTimer = 0.0f;
     const float HUMAN_TRICK_END_DELAY = 1.2f;
+    float humanScoreDelay = 10.0f;
+    const float HUMAN_SCORE_DELAY = 10.0f;
+    float humanDealingTimer = 0.0f;
+    const float HUMAN_DEALING_FALLBACK_DELAY = 2.2f;
 
     cardShuffle.Init("../Assets/Image files/backhand.jpg");
     bool playersobjectsCreated = false;
@@ -160,6 +178,7 @@ int main()
                     return -1;
                 }
                 currentstate = PlayHuman;
+                
             }
             break;
         }
@@ -181,6 +200,9 @@ int main()
             {
             case Shuffling:
             {
+                if (cardShuffle.IsSkipButtonPressed())
+                    cardShuffle.Skip();
+
                 cardShuffle.Update();
                 if (!dealtcards)
                 {
@@ -227,9 +249,18 @@ int main()
                 if (!bidchosen)
                 {
                     bidScreen.Update();
-                    if (bidScreen.confirmed)
+                    bidScreenTimer += GetFrameTime();
+
+                    bool realConfirm = bidScreen.confirmed && bidScreenTimer >= BID_SCREEN_MIN_TIME;
+                    bool timedOut = bidScreenTimer >= BID_SCREEN_TIMEOUT;
+
+                    if (realConfirm || timedOut)
                     {
-                        players[0]->bid = bidScreen.GetSelectedBid();
+                        int myBid = realConfirm ? bidScreen.GetSelectedBid() : players[0]->chooseBid();
+                        if (myBid < 1)
+                            myBid = players[0]->chooseBid();
+
+                        players[0]->bid = myBid;
                         for (int bot = 1; bot < 4; bot++)
                         {
                             players[bot]->bid = players[bot]->chooseBid();
@@ -249,7 +280,8 @@ int main()
                     dealStarted = false;
                     cardsToShow = 0;
                     dealCardTimer = 0.0f;
-                    bidScreen.confirmed = false;
+                    bidScreen.Reset();
+                    bidScreenTimer = 0.0f;
                     cardShuffle.Reset();
 
                     for (int i = 0; i < 4; i++)
@@ -297,23 +329,17 @@ int main()
 
         case PlayHuman:
         {
-            // FIX: message handling used to live inside each sub-state's own
-            // case block, so only the message types that particular case
-            // expected got parsed. client.poll() can hand back several
-            // queued messages in a single frame though, and only one case
-            // runs per frame — e.g. if "biddingComplete" and the leader's
-            // "cardPlayed" both arrived in the same batch while a client
-            // was still executing the humanBidding case, "cardPlayed" had
-            // no handler there and was silently dropped. That card then
-            // never made it into humanMoves, so it never showed up on that
-            // client's table, and depending on timing the turn handoff
-            // could get lost right along with it.
-            //
-            // Fix: poll and process ALL incoming messages once per frame,
-            // regardless of which sub-state we're currently in, so no
-            // message type is ever gated behind the "wrong" case. The
-            // switch below only handles local input/animation now.
+          
             client.poll();
+
+          
+            if (!client.connected && currentplayhumanstate != Connecting)
+            {
+                homeStatusMessage = "Lost connection to the server.";
+                currentstate = Home;
+                currentplayhumanstate = Connecting;
+                break;
+            }
 
             while (!client.incomingMessages.empty())
             {
@@ -323,9 +349,14 @@ int main()
                     continue;
                 std::string method = msg["method"];
 
+               
+                try
+                {
+
                 if (method == "lobbyFull")
                 {
                     lobbyFullMessage = true;
+                    homeStatusMessage = "Lobby is full — try again shortly.";
                     currentstate = Home;
                     currentplayhumanstate = Connecting; // reset for next attempt
                 }
@@ -347,17 +378,7 @@ int main()
                 {
                     std::vector<int> cardIndices = msg["params"]["your_cards"].get<std::vector<int>>();
 
-                    // isnetworked=false because this player is driven
-                    // locally by the mouse; the chosen bid/card is then
-                    // sent to the server explicitly.
-                    // FIX: use the ID the server actually assigned
-                    // instead of hard-coding 1 — hard-coding it broke
-                    // every client except whoever happened to connect
-                    // first, since their own "cardPlayed" echoes never
-                    // matched players[0]->player_id.
-                    // A new hand replaces the old local hand. Delete the
-                    // previous object first so every client starts the hand
-                    // with exactly the cards sent by the server.
+                   
                     delete players[0];
                     players[0] = new Player(true, false);
                     players[0]->player_id = msg["params"]["player_id"].get<int>();
@@ -366,6 +387,11 @@ int main()
                     seatLabels[1] = "Player 2";
                     seatLabels[2] = "Player 3";
                     seatLabels[3] = "Player 4";
+                    for (int i = 0; i < 4; i++)
+                    {
+                        seatBids[i] = 0;
+                        seatTricks[i] = 0;
+                    }
                     currentTurnPlayerId = -1;
                     myTurn = false;
                     pendingCardIndex = -1;
@@ -377,26 +403,46 @@ int main()
                     players[0]->organizeHand();
                     cardsReceived = true;
                     bidAutoSubmitted = false;
+                    biddingCompleteReceived = false;
                     bidAutoTimer = 0.0f;
+                    
+                    bidSubmitted = false;
+                    bidScreen.Reset();
                     std::cout << "Received cards from server." << std::endl;
                     // note it arrived, don't transition yet
                 }
                 else if (method == "biddingComplete")
                 {
-                    // Do not start the local clock here. The server sends a
-                    // separate turnStarted event containing the actual
-                    // active player, which keeps all clients synchronized.
+                    
+                    if (msg.contains("params") && msg["params"].contains("bids"))
+                    {
+                        for (auto &entry : msg["params"]["bids"])
+                        {
+                            int pid = entry["player_id"].get<int>();
+                            int bidVal = entry["bid"].get<int>();
+                            if (pid >= 1 && pid <= 4)
+                                seatBids[pid - 1] = bidVal;
+                        }
+                    }
+
+                    //
+                    biddingCompleteReceived = true;
                     myTurn = false;
                     pendingCardIndex = -1;
                     humanMoves.clear();
-                    currentplayhumanstate = humanPlaying;
+
+                    if (bidSubmitted)
+                    {
+                        currentplayhumanstate = humanPlaying;
+                    }
+                    else
+                    {
+                        currentplayhumanstate = humanBidding;
+                    }
                 }
                 else if (method == "turnStarted")
                 {
-                    // IMPORTANT: the server sends turnStarted to EVERY
-                    // client. Previously the server sent turnStarted while
-                    // the client was waiting for "yourTurn", so clients never
-                    // reliably knew that it was their turn.
+                   
                     int turnPlayerId = msg["params"]["player_id"].get<int>();
                     currentTurnPlayerId = turnPlayerId;
                     myTurn = (players[0] != nullptr &&
@@ -408,19 +454,22 @@ int main()
                     // network event. Only the active client decrements it.
                     game.timeManager.reset();
                     pendingCardIndex = -1;
-                    currentplayhumanstate = humanPlaying;
+
+                 
+                    if (bidSubmitted)
+                        currentplayhumanstate = humanPlaying;
+
                     std::cout << "Timer reset to 60 on turn start." << std::endl;
 
                     std::cout << "Turn started: Player " << turnPlayerId
                               << (myTurn ? " (YOU)" : "") << std::endl;
-                    std::cout << "Local player id = " << players[0]->player_id << std::endl;
+                   
+                    if (players[0] != nullptr)
+                        std::cout << "Local player id = " << players[0]->player_id << std::endl;
                 }
                 else if (method == "cardPlayed")
                 {
-                    // if the previous trick is still being shown, this
-                    // card belongs to the new trick — clear the old one
-                    // now that we actually have something to replace it
-                    // with, instead of on a bare "trickWon" signal.
+                   
                     if (humanTrickEndPending)
                     {
                         humanMoves.clear();
@@ -433,10 +482,7 @@ int main()
                     c.load(cardVal);
                     humanMoves.push_back({pid, c});
 
-                    // The server is authoritative. Remove the exact card
-                    // that the server says was played instead of relying on
-                    // a stale array index captured before the network round
-                    // trip.
+                    
                     if (players[0] && pid == players[0]->player_id)
                     {
                         int confirmedIndex = -1;
@@ -466,17 +512,33 @@ int main()
                 }
                 else if (method == "trickWon")
                 {
-                    // FIX: used to clear humanMoves right here, but
-                    // "cardPlayed" (the winning card) and "trickWon" often
-                    // arrive in the same poll batch, so the trick-winning
-                    // card was wiped before a single frame ever drew it.
-                    // Just start the display delay instead; the actual
-                    // clear happens below (timer) or on the next cardPlayed.
+                    // NEW: tally live tricks-won per seat for the render
+                    // interface (previously nothing tracked this client-side).
+                    if (msg.contains("params") && msg["params"].contains("player_id"))
+                    {
+                        int winnerId = msg["params"]["player_id"].get<int>();
+                        if (winnerId >= 1 && winnerId <= 4)
+                            seatTricks[winnerId - 1]++;
+                    }
+
+                  
                     humanTrickEndPending = true;
                     humanTrickEndTimer = HUMAN_TRICK_END_DELAY;
                 }
                 else if (method == "handOver")
                 {
+          
+                    if (msg.contains("params") && msg["params"].contains("scores"))
+                    {
+                        for (auto &entry : msg["params"]["scores"])
+                        {
+                            int pid = entry["player_id"].get<int>();
+                            float delta = entry["score"].get<float>();
+                            if (pid >= 1 && pid <= 4 && humanHandsPlayed >= 0 && humanHandsPlayed < 5)
+                                humanScoresGrid[humanHandsPlayed][pid - 1] = delta;
+                        }
+                    }
+
                     humanHandsPlayed++;
                     cardsReceived = false;
                     dealtcards = false;
@@ -491,20 +553,53 @@ int main()
                     std::cout << "Timer reset after hand over." << std::endl;
                     bidSubmitted = false;
                     bidAutoSubmitted = false;
+                    biddingCompleteReceived = false;
                     bidAutoTimer = 0.0f;
-                    bidScreen.confirmed = false;
+                    bidScreen.Reset();
                     cardShuffle.Reset();
                     shuffleDelay = SHUFFLE_DELAY;
-                    currentplayhumanstate = humanShuffling;
+                    humanScoreDelay = HUMAN_SCORE_DELAY;
+                    currentplayhumanstate = displayscoresHuman;
                 }
                 else if (method == "gameOver")
                 {
-                    currentstate = Home;
-                    currentplayhumanstate = Connecting;
-                    humanHandsPlayed = 0;
+             
+                    if (msg.contains("params") && msg["params"].contains("scores"))
+                    {
+                        for (auto &entry : msg["params"]["scores"])
+                        {
+                            int pid = entry["player_id"].get<int>();
+                            float delta = entry["score"].get<float>();
+                            if (pid >= 1 && pid <= 4 && humanHandsPlayed >= 0 && humanHandsPlayed < 5)
+                                humanScoresGrid[humanHandsPlayed][pid - 1] = delta;
+                        }
+                    }
+
+                    humanMoves.clear();
                     myTurn = false;
                     currentTurnPlayerId = -1;
                     pendingCardIndex = -1;
+                    humanScoreDelay = HUMAN_SCORE_DELAY;
+                    matchOverPendingHome = true;
+                    currentplayhumanstate = displayscoresHuman;
+                }
+                
+                else if (method == "gameAborted")
+                {
+                    homeStatusMessage = "Match ended — a player disconnected.";
+                    myTurn = false;
+                    currentTurnPlayerId = -1;
+                    pendingCardIndex = -1;
+                    humanMoves.clear();
+                    currentstate = Home;
+                    currentplayhumanstate = Connecting;
+                }
+
+                } // end try
+                catch (const std::exception &e)
+                {
+                    std::cerr << "[ERROR] Failed to process message (method=" << method
+                              << "): " << e.what() << " — raw=" << msg.dump() << std::endl;
                 }
             }
 
@@ -526,8 +621,36 @@ int main()
                 break;
             }
 
+            case displayscoresHuman:
+            {
+                humanScoreDelay -= GetFrameTime();
+                if (humanScoreDelay <= 0.0f)
+                {
+                    humanScoreDelay = HUMAN_SCORE_DELAY;
+                    if (matchOverPendingHome)
+                    {
+                    
+                        matchOverPendingHome = false;
+                        currentstate = Home;
+                        currentplayhumanstate = Connecting;
+                        humanHandsPlayed = 0;
+                        for (int r = 0; r < 5; r++)
+                            for (int c = 0; c < 4; c++)
+                                humanScoresGrid[r][c] = 0.0f;
+                    }
+                    else
+                    {
+                        currentplayhumanstate = humanShuffling;
+                    }
+                }
+                break;
+            }
+
             case humanShuffling:
             {
+                if (cardShuffle.IsSkipButtonPressed())
+                    cardShuffle.Skip();
+
                 cardShuffle.Update();
                 if (cardShuffle.isDone() && cardsReceived)
                 {
@@ -535,6 +658,7 @@ int main()
                     dealStarted = false;
                     cardsToShow = 0;
                     dealCardTimer = 0.0f;
+                    humanDealingTimer = 0.0f;
                 }
                 break;
             }
@@ -556,19 +680,19 @@ int main()
                     dealCardTimer = 0.0f;
                 }
 
-                if (dealAnim.isDone())
+                if (dealAnim.isDone() || humanDealingTimer >= HUMAN_DEALING_FALLBACK_DELAY)
                 {
                     // NEW: go pick a bid before playing, instead of
                     // straight into humanPlaying.
                     bidSubmitted = false;
-                    bidScreen.confirmed = false;
+                    bidAutoTimer = 0.0f;
+                    bidScreen.Reset();
                     currentplayhumanstate = humanBidding;
                 }
                 break;
             }
 
-            // NEW: every client shows BidScreen, submits their bid to the
-            // server, then waits until everyone else has too.
+    
             case humanBidding:
             {
                 if (!bidSubmitted)
@@ -576,7 +700,10 @@ int main()
                     bidScreen.Update();
                     bidAutoTimer += GetFrameTime();
 
-                    if (bidScreen.confirmed)
+                   
+                    bool realConfirm = bidScreen.confirmed && bidAutoTimer >= BID_SCREEN_MIN_TIME;
+
+                    if (realConfirm)
                     {
                         int bid = bidScreen.GetSelectedBid();
                         players[0]->bid = bid;
@@ -598,13 +725,17 @@ int main()
                         std::cout << "Auto-submitted bid: " << fallbackBid << std::endl;
                     }
                 }
+
+                if (bidSubmitted && biddingCompleteReceived)
+                {
+                    currentplayhumanstate = humanPlaying;
+                }
                 break;
             }
 
             case humanPlaying:
             {
-                // NEW: advance/expire the "keep last trick visible" delay
-                // regardless of whose turn it is.
+               
                 if (humanTrickEndPending)
                 {
                     humanTrickEndTimer -= GetFrameTime();
@@ -615,10 +746,7 @@ int main()
                     }
                 }
 
-                // The countdown should move for everyone so the table stays
-                // visually synchronized. The server remains the authority for
-                // timeout handling, but the local client should only send a
-                // move once it has a valid click and the turn is clearly its own.
+           
                 refreshCardRects(players[0]);
 
                 const bool timerShouldRun = myTurn && currentTurnPlayerId > 0 && localPlayerId > 0 && currentTurnPlayerId == localPlayerId;
@@ -662,8 +790,8 @@ int main()
                 }
                 else
                 {
-                    // Keep the timer frozen for non-active seats so the countdown
-                    // only runs for the client whose turn it is.
+                    game.timeManager.reset();
+                    std::cout << "Local timer reset (not my turn)." << std::endl;
                 }
                 break;
             }
@@ -684,6 +812,13 @@ int main()
         {
             ClearBackground(RED);
             HOME.Homedesign_draw();
+            if (!homeStatusMessage.empty())
+            {
+                int fontSize = 22;
+                int textWidth = MeasureText(homeStatusMessage.c_str(), fontSize);
+                DrawText(homeStatusMessage.c_str(),
+                         (GetScreenWidth() - textWidth) / 2, 20, fontSize, WHITE);
+            }
             break;
         }
 
@@ -705,9 +840,19 @@ int main()
             }
             case Playing:
             {
+              
+                std::string botLabels[4] = {"You", "Bot 1", "Bot 2", "Bot 3"};
+                int botBids[4];
+                int botTricks[4];
+                for (int i = 0; i < 4; i++)
+                {
+                    botBids[i] = players[i]->bid;
+                    botTricks[i] = players[i]->tricksWon;
+                }
+
                 renderer.drawWholeInterface(players[0]->hand, players[0]->handSize, players[0]->rects,
                                              game.roundManager.moves, game.timeManager.currentTime,
-                                             game.handsPlayed + 1);
+                                             game.handsPlayed + 1, botLabels, -1, -1, botBids, botTricks);
                 if (!bidchosen)
                 {
                     bidScreen.Draw();
@@ -735,28 +880,34 @@ int main()
             }
             case Lobby:
             {
-                ClearBackground({22, 82, 42, 255});
+                ClearBackground(BLACK);
                 lobbyScreen.Draw(lastPlayersConnected);
+                break;
+            }
+            case displayscoresHuman:
+            {
+                ClearBackground(BLACK);
+            
+                score.Draw(humanScoresGrid);
                 break;
             }
             case humanShuffling:
             {
-                ClearBackground({22, 82, 42, 255});
+                ClearBackground(BLACK);
                 cardShuffle.Draw();
                 break;
             }
             case humanDealing:
             {
-                ClearBackground({22, 82, 42, 255});
+                ClearBackground(BLACK);
                 renderer.drawWholeInterface(players[0]->hand, cardsToShow, humanHandsPlayed + 1, seatLabels, currentTurnPlayerId, localPlayerId);
                 dealAnim.draw(renderer);
                 break;
             }
-            // NEW: draw the bid screen (or a "waiting" message once this
-            // client has already submitted) over the dealt hand.
+           
             case humanBidding:
             {
-                ClearBackground({22, 82, 42, 255});
+                ClearBackground(BLACK);
                 renderer.drawWholeInterface(players[0]->hand, players[0]->handSize, humanHandsPlayed + 1, seatLabels, currentTurnPlayerId, localPlayerId);
                 if (!bidSubmitted)
                 {
@@ -765,16 +916,17 @@ int main()
                 else
                 {
                     const char *waitMsg = "Waiting for other players to bid...";
-                    DrawText(waitMsg, (GetScreenWidth() - MeasureText(waitMsg, 24)) / 2, 700, 24, WHITE);
+                    DrawTextEx(font,waitMsg, {(float(GetScreenWidth()) - MeasureText(waitMsg, 24)) / 2, 600}, 36,2, GOLD);
                 }
                 break;
             }
             case humanPlaying:
             {
-                ClearBackground({22, 82, 42, 255});
+                ClearBackground(BLACK);
                 renderer.drawWholeInterface(players[0]->hand, players[0]->handSize, players[0]->rects,
                                              humanMoves, game.timeManager.currentTime,
-                                             humanHandsPlayed + 1, seatLabels, currentTurnPlayerId, localPlayerId);
+                                             humanHandsPlayed + 1, seatLabels, currentTurnPlayerId, localPlayerId,
+                                             seatBids, seatTricks);
                 break;
             }
             default:
@@ -797,6 +949,7 @@ int main()
 
     CloseAudioDevice();
     CloseWindow();
+    UnloadFont(font);
 
     return 0;
 }

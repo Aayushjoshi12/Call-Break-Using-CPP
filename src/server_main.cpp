@@ -64,25 +64,23 @@ int main()
     int roundsPlayed = 0;
     int handsPlayed = 0;
     const int TOTAL_HANDS = 5;
+    const double BIDDING_TIMEOUT_SECONDS = 180.0;
     float scores[5][4] = {};
 
     // Bidding state for the current hand.
     bool bidSubmitted[4] = {false, false, false, false};
     int bidsIn = 0;
     chrono::steady_clock::time_point biddingStartTime = chrono::steady_clock::now();
-    const double BIDDING_TIMEOUT_SECONDS = 4.0;
+   
 
-    // Authoritative server-side turn timer.  This prevents the entire game
-    // from freezing if a client does not click, loses focus, or disconnects
-    // while it is that client's turn.
+    // Authoritative server-side turn timer.
     chrono::steady_clock::time_point turnStartTime = chrono::steady_clock::now();
 
-    // Every time the server starts a turn, ALL clients receive the same
-    // message.  The active client uses it to enable input; all clients use
-    // it to reset their visual timer at the same moment.
     auto broadcastTurnStarted = [&]()
     {
         if (roundManager.currentPlayer < 0 || roundManager.currentPlayer >= 4)
+            return;
+        if (players[roundManager.currentPlayer] == nullptr)
             return;
 
         int playerId = players[roundManager.currentPlayer]->player_id;
@@ -97,9 +95,6 @@ int main()
         );
     };
 
-    // Server-side version of one accepted card play.  Both a normal client
-    // request and a timeout use this exact path, so they cannot get out of
-    // sync with each other.
     auto processPlay = [&](int senderId, int cardValue, bool timeoutPlay) -> bool
     {
         if (roundManager.currentPlayer < 0 || roundManager.currentPlayer >= 4)
@@ -144,8 +139,6 @@ int main()
 
         Move &lastMove = roundManager.moves.back();
 
-        // This is the single source of truth for the table. Every client,
-        // including the player who clicked, receives this event.
         server.broadcast({
             {"method", "cardPlayed"},
             {"params", {
@@ -172,20 +165,20 @@ int main()
 
             if (roundsPlayed < 13)
             {
-                // The winner of the previous trick leads the next one.
                 roundManager.startRound(roundManager.winner, players);
                 broadcastTurnStarted();
             }
             else
             {
-                // One complete 13-trick hand is finished.
-                scoreHand(players, scores, handsPlayed);
+                int completedHandIndex = handsPlayed;
+                scoreHand(players, scores, completedHandIndex);
                 handsPlayed++;
                 roundsPlayed = 0;
 
                 json scoreJson = json::array();
                 for (int i = 0; i < 4; i++)
-                    scoreJson.push_back(players[i]->score);
+                    scoreJson.push_back({{"player_id", players[i]->player_id},
+                                          {"score", scores[completedHandIndex][i]}});
 
                 if (handsPlayed < TOTAL_HANDS)
                 {
@@ -214,9 +207,6 @@ int main()
         }
         else if (state == PLAYING)
         {
-            // Advance the shared turn timer for every client immediately after
-            // a successful card play so the next player is prompted without
-            // waiting for a separate round-end event.
             broadcastTurnStarted();
         }
 
@@ -226,6 +216,35 @@ int main()
     while (true)
     {
         server.poll(players);
+
+        // FIX: the server used to abort any live match whenever the seat
+        // count dropped below 4. That could falsely look like a disconnect
+        // during the first few frames after bidding/play transitions, even
+        // when no real peer drop had been observed. Only abort on an
+        // actual disconnect event that the network layer reported.
+        const bool disconnectObserved = server.lastDisconnectObserved;
+        if (state != LOBBY && state != GAME_OVER && disconnectObserved && server.players_connected < 4)
+        {
+            cout << "[WARN] A player disconnected mid-match (players_connected="
+                 << server.players_connected << "). Aborting this match." << endl;
+
+            server.broadcast({{"method", "gameAborted"},
+                               {"params", {{"reason", "player_disconnected"}}}});
+
+            state = LOBBY;
+            isdeckcreated = false;
+            roundsPlayed = 0;
+            handsPlayed = 0;
+            bidsIn = 0;
+            for (int i = 0; i < 4; i++)
+                bidSubmitted[i] = false;
+            for (int i = 0; i < 5; i++)
+                for (int j = 0; j < 4; j++)
+                    scores[i][j] = 0.0f;
+
+            this_thread::sleep_for(chrono::milliseconds(5));
+            continue;
+        }
 
         switch (state)
         {
@@ -291,13 +310,36 @@ int main()
                 json msg = front.second;
                 server.incomingMessages.pop();
 
-                if (!msg.contains("method") || msg["method"] != "submitBid")
-                    continue;
+                cout << "[WAITING_BIDS] got message from senderId=" << senderId
+                     << " method=" << (msg.contains("method") ? msg["method"].get<std::string>() : "<none>")
+                     << " raw=" << msg.dump() << endl;
 
+                if (!msg.contains("method") || msg["method"] != "submitBid")
+                {
+                    cout << "[WAITING_BIDS] ignored (not a submitBid)" << endl;
+                    continue;
+                }
+
+                if (!msg.contains("params") || !msg["params"].contains("bid"))
+                {
+                    cout << "[WAITING_BIDS] WARNING: submitBid from senderId="
+                         << senderId << " missing params.bid — ignoring" << endl;
+                    continue;
+                }
+
+                bool matched = false;
                 for (int i = 0; i < 4; i++)
                 {
-                    if (players[i] && players[i]->player_id == senderId && !bidSubmitted[i])
+                    if (players[i] && players[i]->player_id == senderId)
                     {
+                        matched = true;
+                        if (bidSubmitted[i])
+                        {
+                            cout << "[WAITING_BIDS] senderId=" << senderId
+                                 << " already submitted a bid — duplicate ignored" << endl;
+                            break;
+                        }
+
                         int bid = msg["params"]["bid"].get<int>();
 
                         if (bid < 1)
@@ -310,15 +352,38 @@ int main()
                         bidsIn++;
 
                         cout << "[INFO] Player " << senderId
-                             << " bid " << bid << endl;
+                             << " bid " << bid
+                             << " (bidsIn now " << bidsIn << "/4)" << endl;
                         break;
                     }
+                }
+
+                if (!matched)
+                {
+                    cout << "[WAITING_BIDS] WARNING: submitBid senderId="
+                         << senderId << " does not match any connected player_id. Known IDs: ";
+                    for (int i = 0; i < 4; i++)
+                        cout << (players[i] ? players[i]->player_id : -1) << " ";
+                    cout << endl;
                 }
             }
 
             double biddingElapsed = chrono::duration<double>(chrono::steady_clock::now() - biddingStartTime).count();
+
+            static double lastHeartbeat = 0.0;
+            if (biddingElapsed - lastHeartbeat >= 2.0)
+            {
+                lastHeartbeat = biddingElapsed;
+                cout << "[WAITING_BIDS] heartbeat: bidsIn=" << bidsIn << "/4, elapsed="
+                     << biddingElapsed << "s, submitted=[";
+                for (int i = 0; i < 4; i++)
+                    cout << (bidSubmitted[i] ? "Y" : "N") << (i < 3 ? "," : "");
+                cout << "]" << endl;
+            }
+
             if (bidsIn < 4 && biddingElapsed >= BIDDING_TIMEOUT_SECONDS)
             {
+                cout << "[WAITING_BIDS] bidding timeout reached, auto-submitting missing bids." << endl;
                 for (int i = 0; i < 4; i++)
                 {
                     if (players[i] && !bidSubmitted[i])
@@ -334,11 +399,25 @@ int main()
 
             if (bidsIn == 4)
             {
+                bool allPlayersPresent = true;
+                for (int i = 0; i < 4; i++)
+                    if (players[i] == nullptr)
+                        allPlayersPresent = false;
+
+                if (!allPlayersPresent)
+                {
+                    break;
+                }
+
                 roundManager.startRound(1, players);
                 roundsPlayed = 0;
                 state = PLAYING;
 
-                server.broadcast({{"method", "biddingComplete"}});
+                json bidsJson = json::array();
+                for (int i = 0; i < 4; i++)
+                    bidsJson.push_back({{"player_id", players[i]->player_id}, {"bid", players[i]->bid}});
+
+                server.broadcast({{"method", "biddingComplete"}, {"params", {{"bids", bidsJson}}}});
                 broadcastTurnStarted();
 
                 cout << "All bids received. Starting play." << endl;
@@ -348,9 +427,6 @@ int main()
 
         case PLAYING:
         {
-            // Server-authoritative timeout.  We choose the first legal card
-            // from the current hand, so timeout can never deadlock the game
-            // because of an invalid follow-suit choice.
             double elapsed = chrono::duration<double>(
                                   chrono::steady_clock::now() - turnStartTime)
                                   .count();
@@ -382,16 +458,11 @@ int main()
                     }
                     else
                     {
-                        // A valid hand should always have at least one legal
-                        // card. Resetting the clock is safer than a tight loop if
-                        // the server receives corrupted state.
                         turnStartTime = chrono::steady_clock::now();
                     }
                 }
             }
 
-            // Process every queued client message in this frame.  Messages
-            // from an old/non-active player are ignored by processPlay.
             while (!server.incomingMessages.empty() && state == PLAYING)
             {
                 auto front = server.incomingMessages.front();
@@ -413,10 +484,6 @@ int main()
 
         case GAME_OVER:
         {
-            // The current server process can stay alive and wait for a new
-            // set of clients. A fresh lobby requires a restart of the server
-            // with the current Server implementation, so do not mutate the
-            // completed game state here.
             break;
         }
         }

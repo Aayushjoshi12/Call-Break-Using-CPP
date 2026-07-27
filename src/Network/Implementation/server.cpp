@@ -26,6 +26,7 @@ bool Server::init(int port, int maxPlayers)
 void Server::poll(Player *players[4])
 {
     ENetEvent event;
+    lastDisconnectObserved = false;
 
     while (enet_host_service(host, &event, 0) > 0)
     {
@@ -56,6 +57,11 @@ void Server::poll(Player *players[4])
             peers[players_connected - 1] = event.peer;
             players[players_connected - 1] = new Player(true, true); // isHuman=true, isnetworked=true
             players[players_connected - 1]->player_id = (int)(intptr_t)event.peer->data;
+
+            // FIX: match the client's loosened timeout so a real player's
+            // connection isn't dropped during normal idle gaps between turns
+            // or while the game is waiting on another player.
+            enet_peer_timeout(event.peer, 32, 600000, 1800000);
 
             broadcast({{"method", "updateLobby"},
                        {"params", {{"playersConnected", players_connected}}}});
@@ -103,15 +109,26 @@ void Server::poll(Player *players[4])
             }
 
             players_connected--;
+            lastDisconnectObserved = true;
             break;
         }
         case ENET_EVENT_TYPE_RECEIVE:
         {
             int senderId = (int)(intptr_t)event.peer->data;
             std::cout << "[INFO] Message received from client with ID: " << senderId << std::endl;
-            json msg = json::parse((char *)event.packet->data,
-                                    (char *)event.packet->data + event.packet->dataLength);
-            incomingMessages.push({senderId, msg});
+            try
+            {
+                json msg = json::parse((char *)event.packet->data,
+                                        (char *)event.packet->data + event.packet->dataLength);
+                incomingMessages.push({senderId, msg});
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "[ERROR] Failed to parse packet from client " << senderId
+                          << ": " << e.what() << " raw="
+                          << std::string((char *)event.packet->data, event.packet->dataLength)
+                          << std::endl;
+            }
             enet_packet_destroy(event.packet);
             break;
         }
@@ -123,6 +140,8 @@ void Server::poll(Player *players[4])
 
 void Server::sendTo(ENetPeer *peer, const json &j)
 {
+    if (!peer)
+        return;
     std::string msg = j.dump();
     ENetPacket *packet = enet_packet_create(msg.c_str(), msg.size(), ENET_PACKET_FLAG_RELIABLE);
     enet_peer_send(peer, 0, packet);
@@ -130,6 +149,8 @@ void Server::sendTo(ENetPeer *peer, const json &j)
 
 void Server::broadcast(const json &j)
 {
+    if (!host)
+        return;
     std::string msg = j.dump();
     ENetPacket *packet = enet_packet_create(msg.c_str(), msg.size(), ENET_PACKET_FLAG_RELIABLE);
     enet_host_broadcast(host, 0, packet);
