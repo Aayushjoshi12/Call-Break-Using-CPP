@@ -5,8 +5,8 @@
 #include<iostream>
 
 GameManager::GameManager() : TOTAL_HANDS(5), handsPlayed(0), needNewHand(false) {}
-// ───────── GAMEMANAGER ─────────
-void GameManager::updateGame(Player *players[4])
+
+void GameManager::updateGame(Player *players[4], float deltaTime)
 {
     if (gameOver)
         return;
