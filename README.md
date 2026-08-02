@@ -8,4 +8,4 @@
 * [Primul Gairapipple](https://github.com/primul007)
 * [Nikhil Jha](https://github.com/Nikhil-jha1)
 
-<p> BY JUWADIS FOR JUWADIS</p>
+*<p>BY JUWADIS FOR JUWADIS</p>*
